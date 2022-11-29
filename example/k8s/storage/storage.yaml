@@ -1,0 +1,127 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: storage
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: storage-sa
+  namespace: storage
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: storage-config
+  namespace: storage
+data:
+  prometheus.yaml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets:
+            - localhost:9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage
+  namespace: storage
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9090
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: storage
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: storage
+  namespace: storage
+spec:
+  replicas: 1
+  serviceName: storage
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: storage
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: storage
+    spec:
+      serviceAccountName: storage-sa
+      securityContext:
+        fsGroup: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: prometheus
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: quay.io/prometheus/prometheus:v2.40.4
+          imagePullPolicy: IfNotPresent
+          args:
+            - --config.file=/etc/config/prometheus.yaml
+            - --web.enable-remote-write-receiver
+          env:
+            - name: GOGC
+              value: "50"
+          ports:
+            - name: http
+              containerPort: 9090
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 4
+            failureThreshold: 3
+            successThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+          resources:
+            {}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+            - name: storage-volume
+              mountPath: /prometheus/data
+              subPath: ""
+      volumes:
+        - name: config-volume
+          configMap:
+            name: storage-config
+  volumeClaimTemplates:
+    - metadata:
+        name: storage-volume
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "local-path"
+        resources:
+          requests:
+            storage: 8Gi

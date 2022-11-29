@@ -1,0 +1,51 @@
+name: ci
+on:
+  push:
+    tags:
+      - v*
+  pull_request:
+
+jobs:
+  tests:
+    name: Unit Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: './go.mod'
+          check-latest: true
+          cache: true
+      - name: Run Tests
+        run: make unit_test
+
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: './go.mod'
+          check-latest: true
+          cache: true
+      - name: Run Linter
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.48.0
+          args: --timeout 5m
+
+  release:
+    name: Release
+    runs-on: ubuntu-22.04
+    if: startsWith(github.ref, 'refs/tags/')
+    needs:
+      - tests
+      - lint
+    steps:
+      - name: Release a New Version
+        run: echo "do this when there's something to release!"

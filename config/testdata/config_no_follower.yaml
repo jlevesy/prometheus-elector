@@ -1,0 +1,3 @@
+leader:
+  remote_write:
+    - url: http://remote.write.com

@@ -1,0 +1,17 @@
+follower:
+  scrape_configs:
+  - job_name:       'foobar'
+    scrape_interval: 5s
+    static_configs:
+    - targets: ['localhost:8080']
+    metric_relabel_configs:
+      - action: labeldrop
+        regex: "version"
+  - job_name: "kubiznetes"
+    scrape_interval: 10s
+    kubernetes_sd_configs:
+      - role: node
+
+leader:
+  remote_write:
+    - url: http://remote.write.com
