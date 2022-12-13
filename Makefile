@@ -1,15 +1,19 @@
-K3S_VERSION=v1.25.0-k3s1
-
-.PHONY: run
-run: create_cluster install
+K3S_VERSION = v1.25.0-k3s1
+RELEASE_TAG ?= dev
 
 ### Tests
+
+.PHONY: test
+test: unit_test
 
 .PHONY: unit_test
 unit_test:
 	go test -v -cover -race -timeout=5s ./...
 
 ### Dev
+
+.PHONY: run
+run: create_cluster install
 
 .PHONY: create_cluster
 create_cluster: ## run a local k3d cluster
@@ -33,7 +37,6 @@ install_agent: ## install an example in the current cluster
 install_storage: ## install storage backend
 	kubectl apply -f ./example/k8s/storage
 
-### LOCAL
 .PHONY: run_agent_local
 run_agent_local: dist
 	POD_NAME=${POD_NAME} go run ./cmd/main.go \
@@ -47,3 +50,15 @@ run_agent_local: dist
 dist:
 	mkdir -p dist
 
+### CI
+
+.PHONY: ci_release
+ci_release: ci_create_release ci_push_image
+
+.PHONY: ci_create_release
+ci_create_release:
+	gh release create $(RELEASE_TAG) --generate-notes
+
+.PHONY: ci_push_image
+ci_push_image:
+	ko publish --bare -t $(RELEASE_TAG) ./cmd

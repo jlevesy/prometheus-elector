@@ -19,7 +19,7 @@ jobs:
           check-latest: true
           cache: true
       - name: Run Tests
-        run: make unit_test
+        run: make test
 
   lint:
     name: Lint Code
@@ -47,5 +47,18 @@ jobs:
       - tests
       - lint
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: './go.mod'
+          check-latest: true
+          cache: true
+      - name: Install Ko
+        uses: imjasonh/setup-ko@v0.6
       - name: Release a New Version
-        run: echo "do this when there's something to release!"
+        run: make ci_release
+        env:
+          RELEASE_TAG: ${{github.ref_name}}
+          GH_TOKEN: ${{ github.token }}
