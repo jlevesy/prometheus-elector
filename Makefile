@@ -31,7 +31,12 @@ install: install_agent install_storage
 
 .PHONY: install_agent
 install_agent: ## install an example in the current cluster
-	KO_DOCKER_REPO=prometheus-elector-registry.localhost:5000 ko apply -f ./example/k8s/agent
+	helm template \
+		--set elector.image.devRef=ko://github.com/jlevesy/prometheus-elector/cmd \
+		--set prometheus.image.repository=jlevesy/prometheus \
+		--set prometheus.image.tag=allow-agent-no-remote-write \
+		-f ./example/k8s/dev-values.yaml \
+		prometheus-elector-dev ./helm | KO_DOCKER_REPO=prometheus-elector-registry.localhost:5000 ko apply -B -t dev -f -
 
 .PHONY: install_storage
 install_storage: ## install storage backend
