@@ -1,11 +1,12 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "prometheus-elector.fullname" . }}
   labels:
     {{- include "prometheus-elector.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  serviceName: {{ include "prometheus-elector.fullname" . }}
   selector:
     matchLabels:
       {{- include "prometheus-elector.selectorLabels" . | nindent 6 }}
@@ -113,5 +114,20 @@ spec:
             name: {{ template "prometheus-elector.configMapName" . }}
         - name: runtime-volume
           emptyDir: {}
-        - name: storage-volume
-          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: storage-volume
+        {{- if .Values.storage.annotations }}
+        annotations:
+{{ toYaml .Values.storage.annotations | indent 10 }}
+        {{- end }}
+        {{- if .Values.storage.labels }}
+        labels:
+{{ toYaml .Values.storage.labels | indent 10 }}
+        {{- end }}
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: {{ default .Values.storage.storageClassName "" }}
+        resources:
+          requests:
+            storage: {{ default .Values.storage.size "1Gi" }}

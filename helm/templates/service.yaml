@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "prometheus-elector.fullname" . }}
+  labels:
+    {{- include "prometheus-elector.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "prometheus-elector.selectorLabels" . | nindent 4 }}
