@@ -1,0 +1,76 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "prometheus-elector.fullname" . }}-clusterrole
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+      - nodes/proxy
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+      - ingresses
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - "extensions"
+      - "networking.k8s.io"
+    resources:
+      - ingresses/status
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+  - nonResourceURLs:
+      - "/metrics"
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "prometheus-elector.fullname" . }}-clusterrolebinding
+subjects:
+- kind: ServiceAccount
+  name: {{ include "prometheus-elector.serviceAccountName" . }}
+  namespace: {{ default "default" .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "prometheus-elector.fullname" . }}-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "prometheus-elector.fullname" . }}-role
+rules:
+  - apiGroups:
+      - "coordination.k8s.io"
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "prometheus-elector.fullname" . }}-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: {{ include "prometheus-elector.serviceAccountName" . }}
+roleRef:
+  kind: Role 
+  name: {{ include "prometheus-elector.fullname" . }}-role
+  apiGroup: rbac.authorization.k8s.io

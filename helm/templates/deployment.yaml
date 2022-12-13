@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "prometheus-elector.fullname" . }}
+  labels:
+    {{- include "prometheus-elector.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "prometheus-elector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "prometheus-elector.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "prometheus-elector.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: generate-init-config
+          image: {{ include "helm.imageName" . }}
+          imagePullPolicy: {{ .Values.prometheus.image.pullPolicy }}
+          args:
+            - -config=/etc/config/prometheus-elector.yaml
+            - -output=/etc/runtime/prometheus.yaml
+            - -init
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+            - name: runtime-volume
+              mountPath: /etc/runtime
+      containers:
+        - name: prometheus-elector
+          image: {{ include "helm.imageName" . }}
+          imagePullPolicy: {{ .Values.prometheus.image.pullPolicy }}
+          args:
+            - -lease-name=prometheus-elector-lease
+            - -lease-namespace={{ .Release.Namespace }}
+            - -config=/etc/config/prometheus-elector.yaml
+            - -output=/etc/runtime/prometheus.yaml
+            - -reload-url=http://127.0.0.1:9090/-/reload
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+            - name: runtime-volume
+              mountPath: /etc/runtime
+        - name: prometheus
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.prometheus.image.repository }}:{{ .Values.prometheus.image.tag }}"
+          imagePullPolicy: {{ .Values.prometheus.image.pullPolicy }}
+          {{- if .Values.prometheus.env }}
+          env:
+{{ toYaml .Values.prometheus.env | indent 12}}
+          {{- end }}
+          args:
+            {{- range $arg := .Values.prometheus.args }}
+            - {{ $arg }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 9090
+              protocol: TCP
+          {{- if .Values.prometheus.readinessProbe }}
+          readinessProbe:
+{{ toYaml .Values.prometheus.readinessProbe | indent 12 }}
+          {{- end }}
+          {{- if .Values.prometheus.livenessProbe }}
+          livenessProbe:
+{{ toYaml .Values.prometheus.livenessProbe | indent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: runtime-volume
+              mountPath: /etc/config
+              readOnly: true
+            - name: storage-volume
+              mountPath: /prometheus/data-agent
+              subPath: ""
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ template "prometheus-elector.configMapName" . }}
+        - name: runtime-volume
+          emptyDir: {}
+        - name: storage-volume
+          emptyDir: {}
