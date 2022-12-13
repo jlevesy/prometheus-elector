@@ -1,3 +1,6 @@
+storage:
+  storageClass: "local-path"
+
 configFiles:
   prometheus-elector.yaml: |
     # Configuration only applied when elected leader
