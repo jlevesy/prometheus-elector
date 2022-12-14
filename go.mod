@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/imdario/mergo v0.3.13
-	github.com/prometheus/prometheus v0.40.6
+	github.com/prometheus/prometheus v0.40.7
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/sync v0.1.0
 	gopkg.in/yaml.v2 v2.4.0
