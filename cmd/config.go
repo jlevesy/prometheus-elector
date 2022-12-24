@@ -4,11 +4,26 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 	"time"
+
+	"golang.org/x/net/http/httpguts"
 )
 
 type cliConfig struct {
+	// Init config.
+
+	// Are we running in init mode? (ie: writing the configuration once then exititing).
+	init bool
+
+	// Config and output paths.
+	configPath string
+	outputPath string
+
+	// Runtime config.
+	// Election setup.
 	memberID           string
 	leaseName          string
 	leaseNamespace     string
@@ -16,12 +31,14 @@ type cliConfig struct {
 	leaseRenewDeadline time.Duration
 	leaseRetryPeriod   time.Duration
 
-	kubeConfigPath string
-	configPath     string
+	// How to notify prometheus for an update.
+	notifyHTTPURL          string
+	notifyHTTPMethod       string
+	notifyRetryMaxAttempts int
+	notifyRetryDelay       time.Duration
 
-	outputPath string
-	reloadURL  string
-	init       bool
+	// Path to a kubeconfig (if running outside from the cluster).
+	kubeConfigPath string
 }
 
 func newCLIConfig() cliConfig {
@@ -32,27 +49,23 @@ func newCLIConfig() cliConfig {
 
 func (c *cliConfig) validateInitConfig() error {
 	if c.configPath == "" {
-		return errors.New("missing config path")
+		return errors.New("missing config flag")
 	}
 
 	if c.outputPath == "" {
-		return errors.New("missing output path")
+		return errors.New("missing output flag")
 	}
 
 	return nil
 }
 
-func (c *cliConfig) validateElectionConfig() error {
+func (c *cliConfig) validateRuntimeConfig() error {
 	if c.leaseName == "" {
 		return errors.New("missing lease-name flag")
 	}
 
 	if c.leaseNamespace == "" {
 		return errors.New("missing lease-namespace flag")
-	}
-
-	if c.reloadURL == "" {
-		return errors.New("missing reloadURL path")
 	}
 
 	if c.memberID == "" {
@@ -62,6 +75,22 @@ func (c *cliConfig) validateElectionConfig() error {
 		if err != nil {
 			return fmt.Errorf("can't read hostname: %w", err)
 		}
+	}
+
+	if c.notifyHTTPURL == "" {
+		return errors.New("missing notify-http-url flag")
+	}
+
+	if !validHTTPMethod(c.notifyHTTPMethod) {
+		return errors.New("invalid notify-http-method")
+	}
+
+	if c.notifyRetryMaxAttempts < 1 {
+		return errors.New("invalid notify-retry-max-attempts, should be >= 1")
+	}
+
+	if c.notifyRetryDelay < 1 {
+		return errors.New("invalid notify-retry-delay, should be >= 1")
 	}
 
 	return nil
@@ -76,6 +105,16 @@ func (c *cliConfig) setupFlags() {
 	flag.StringVar(&c.kubeConfigPath, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&c.configPath, "config", "", "Path of the prometheus-elector configuration")
 	flag.StringVar(&c.outputPath, "output", "", "Path to write the active prometheus configuration")
-	flag.StringVar(&c.reloadURL, "reload-url", "", "URL to the reload configuration endpoint")
+	flag.StringVar(&c.notifyHTTPURL, "notify-http-url", "", "URL to the reload configuration endpoint")
+	flag.StringVar(&c.notifyHTTPMethod, "notify-http-method", http.MethodPost, "HTTP method to use when sending the reload config request.")
+	flag.IntVar(&c.notifyRetryMaxAttempts, "notify-retry-max-attempts", 5, "How many times to retry notifying prometheus on failure.")
+	flag.DurationVar(&c.notifyRetryDelay, "notify-retry-delay", 10*time.Second, "How much time to wait between two notify retries.")
 	flag.BoolVar(&c.init, "init", false, "Only init the prometheus config file")
+}
+
+// this is how the http standard library validates the method in NewRequestWithContext.
+func validHTTPMethod(method string) bool {
+	return len(method) > 0 && strings.IndexFunc(method, func(r rune) bool {
+		return !httpguts.IsTokenRune(r)
+	}) == -1
 }

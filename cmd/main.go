@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -45,11 +44,18 @@ func main() {
 		return
 	}
 
-	if err := cfg.validateElectionConfig(); err != nil {
+	if err := cfg.validateRuntimeConfig(); err != nil {
 		klog.Fatal("Invalid election config: ", err)
 	}
 
-	notifier := notifier.NewHTTP(cfg.reloadURL, http.MethodPost)
+	notifier := notifier.WithRetry(
+		notifier.NewHTTP(
+			cfg.notifyHTTPURL,
+			cfg.notifyHTTPMethod,
+		),
+		cfg.notifyRetryMaxAttempts,
+		cfg.notifyRetryDelay,
+	)
 
 	k8sConfig, err := clientcmd.BuildConfigFromFlags("", cfg.kubeConfigPath)
 	if err != nil {
