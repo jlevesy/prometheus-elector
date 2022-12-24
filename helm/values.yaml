@@ -12,10 +12,6 @@ elector:
     pullPolicy: IfNotPresent
 
 prometheus:
-  args:
-    - --enable-feature=agent
-    - --web.enable-lifecycle
-    - --config.file=/etc/config/prometheus.yaml
   env:
   - name: GOGC
     value: "50"

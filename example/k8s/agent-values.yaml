@@ -1,3 +1,7 @@
+prometheus:
+  args:
+    - --enable-feature=agent
+
 storage:
   storageClass: "local-path"
 
