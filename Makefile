@@ -44,13 +44,13 @@ install_storage: ## install storage backend
 
 .PHONY: run_agent_local
 run_agent_local: dist
-	POD_NAME=${POD_NAME} go run ./cmd/main.go \
+	POD_NAME=${POD_NAME} go run ./cmd \
 					 -lease-name lease-dev \
 					 -lease-namespace default \
 					 -kubeconfig /Users/${USER}/.kube/config \
 					 -config ./example/config.yaml \
 					 -output ./dist/config-${POD_NAME}.yaml \
-					 -reload-url http://localhost:9091/-/reload
+					 -notify-http-url http://localhost:9091/-/reload
 
 dist:
 	mkdir -p dist
