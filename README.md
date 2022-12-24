@@ -2,7 +2,7 @@
 
 `prometheus-elector` leverages Kubernetes Leader Election to make sure that only one instance of Prometheus in a replicated workload has a specific configuration enabled.
 
-### Main Use Case: Mimir Agent High Availability
+### Use Case: Prometheus Agent High Availability
 
 Prometheus (in agent mode) is commonly used to push metrics to a  storage backend like [Mimir](https://grafana.com/oss/mimir/). 
 
@@ -12,8 +12,15 @@ Using `prometheus-elector`, we can instead make sure that only one instance has 
 
 
 A known limitation at the moment is that prometheus in agent mode requires at least one [remote_write to start](https://github.com/prometheus/prometheus/blob/main/config/config.go#L115), which is the most important issue right now. This demo is running a [patched version of prometheus](https://github.com/jlevesy/prometheus/tree/allow-agent-no-remote-write) that removes this constraint without issues.
+I reopened [the discussion on that topic](https://github.com/prometheus/prometheus/issues/9611) https://github.com/prometheus/prometheus/issues/11665, and got positive feedback!
 
-I reopened [the discussion on that topic](https://github.com/prometheus/prometheus/issues/9611) https://github.com/prometheus/prometheus/issues/11665.
+The next version of Prometheus will fully support this use case!
+
+### Use Case: Prometheus High Availability
+
+This one is more theoretical at the moment, but we could have an Active passive setup of prometheus, with the leader only having alerts enabled.
+The problem in that case is the read path, because metrics consumers like Grafana, don't properly support having multiple sources.
+However, if I could find a way to have prometheus-elector proxy all the requests to the current active leader, this would solve this issue! If the leader receives the requests, it fowards it to its prometheus instance. If the follower receives the request, it forwards it to the leader!
 
 ### How it Works?
 
@@ -41,25 +48,28 @@ leader:
     - url: http://remote.write.com
 ```
 
-### Current status
+### Installing Prometheus Elector
 
-This is a proof of concept, use this at your own risks! If you like the idea feel free to let me know!
+You can find [an helm chart](./helm) in this repository, as well as [values for the HA agent example](./example/k8s/agent-values.yaml).
 
-Here's a TODO list
+### Current Status
 
-- (mandatory) Write some tests on the current implementation
-- (mandatory) Trigger a reload when the config file is changed
-- (mandatory) Retries on notification
-- (mandatory) CI/CD pipeline
+This is still a proof of concept, until Prometheus releases https://github.com/prometheus/prometheus/pull/11709, use this at your own risks! If you like the idea feel free to let me know!
+
+Here's what will come next!
+
+- Prometheus Metrics!
+- Proxy to route requests to the leader!
+- Release pipeline for the Helm chart?
 - (optional) Notify prometheus using signal ?
 
-### Running this Demo
+### Running an Example Locally
 
 You need `ko`, `kubectl` and `k3d`, from there run `make run`
 
 This will setup:
 
-- [one agent](./examples/k8s/agent/agent.yaml) statefulset with the leader election going on, only one of them will push metrics to the storage
-- [one storage](./examples/k8s/storage/storage.yaml) (prometheus [with the remote_write receiver enabeld](https://prometheus.io/docs/prometheus/latest/querying/api/#remote-write-receiver)) where all the metrics get pushed to
+- [An agent workload](./examples/k8s/agent/agent.yaml) statefulset with the leader election going on, only one of them will push metrics to the storage
+- [A storage storage](./examples/k8s/storage/storage.yaml) (prometheus [with the remote_write receiver enabeld](https://prometheus.io/docs/prometheus/latest/querying/api/#remote-write-receiver)) where all the metrics get pushed to
 
 You can then port-forward to the storage pod via `kubectl port-forward -n storage storage-0 9090:9090` and see some kube metrics flowing.

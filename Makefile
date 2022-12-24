@@ -27,15 +27,15 @@ delete_cluster:
 	k3d cluster delete prometheus-elector-dev
 
 .PHONY: install
-install: install_agent install_storage
+install: install_agent_example install_storage
 
-.PHONY: install_agent
-install_agent: ## install an example in the current cluster
+.PHONY: install_agent_example
+install_agent_example: ## install an example in the current cluster
 	helm template \
 		--set elector.image.devRef=ko://github.com/jlevesy/prometheus-elector/cmd \
 		--set prometheus.image.repository=jlevesy/prometheus \
 		--set prometheus.image.tag=allow-agent-no-remote-write \
-		-f ./example/k8s/dev-values.yaml \
+		-f ./example/k8s/agent-values.yaml \
 		prometheus-elector-dev ./helm | KO_DOCKER_REPO=prometheus-elector-registry.localhost:5000 ko apply -B -t dev -f -
 
 .PHONY: install_storage
@@ -44,13 +44,13 @@ install_storage: ## install storage backend
 
 .PHONY: run_agent_local
 run_agent_local: dist
-	POD_NAME=${POD_NAME} go run ./cmd/main.go \
+	POD_NAME=${POD_NAME} go run ./cmd \
 					 -lease-name lease-dev \
 					 -lease-namespace default \
 					 -kubeconfig /Users/${USER}/.kube/config \
 					 -config ./example/config.yaml \
 					 -output ./dist/config-${POD_NAME}.yaml \
-					 -reload-url http://localhost:9091/-/reload
+					 -notify-http-url http://localhost:9091/-/reload
 
 dist:
 	mkdir -p dist
