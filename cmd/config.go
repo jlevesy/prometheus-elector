@@ -37,6 +37,10 @@ type cliConfig struct {
 	notifyRetryMaxAttempts int
 	notifyRetryDelay       time.Duration
 
+	// API setup
+	apiListenAddr         string
+	apiShutdownGraceDelay time.Duration
+
 	// Path to a kubeconfig (if running outside from the cluster).
 	kubeConfigPath string
 }
@@ -93,6 +97,14 @@ func (c *cliConfig) validateRuntimeConfig() error {
 		return errors.New("invalid notify-retry-delay, should be >= 1")
 	}
 
+	if c.apiListenAddr == "" {
+		return errors.New("missing api-listen-address")
+	}
+
+	if c.apiShutdownGraceDelay < 0 {
+		return errors.New("invalid api-shudown-grace-delay, should be >= 0")
+	}
+
 	return nil
 }
 
@@ -110,6 +122,8 @@ func (c *cliConfig) setupFlags() {
 	flag.IntVar(&c.notifyRetryMaxAttempts, "notify-retry-max-attempts", 5, "How many times to retry notifying prometheus on failure.")
 	flag.DurationVar(&c.notifyRetryDelay, "notify-retry-delay", 10*time.Second, "How much time to wait between two notify retries.")
 	flag.BoolVar(&c.init, "init", false, "Only init the prometheus config file")
+	flag.StringVar(&c.apiListenAddr, "api-listen-address", ":9095", "HTTP listen address to use for the API.")
+	flag.DurationVar(&c.apiShutdownGraceDelay, "api-shutdown-grace-delay", 15*time.Second, "Grace delay to apply when shutting down the API server")
 }
 
 // this is how the http standard library validates the method in NewRequestWithContext.

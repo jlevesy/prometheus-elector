@@ -12,10 +12,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 
+	"github.com/jlevesy/prometheus-elector/api"
 	"github.com/jlevesy/prometheus-elector/config"
 	"github.com/jlevesy/prometheus-elector/election"
 	"github.com/jlevesy/prometheus-elector/notifier"
 	"github.com/jlevesy/prometheus-elector/watcher"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
 func main() {
@@ -47,6 +50,12 @@ func main() {
 	if err := cfg.validateRuntimeConfig(); err != nil {
 		klog.Fatal("Invalid election config: ", err)
 	}
+
+	metricsRegistry := prometheus.NewRegistry()
+	metricsRegistry.MustRegister(collectors.NewBuildInfoCollector())
+	metricsRegistry.MustRegister(collectors.NewGoCollector(
+		collectors.WithGoCollectorRuntimeMetrics(collectors.MetricsAll),
+	))
 
 	notifier := notifier.WithRetry(
 		notifier.NewHTTP(
@@ -92,6 +101,12 @@ func main() {
 		klog.Fatal("Can't setup election", err)
 	}
 
+	apiServer := api.NewServer(
+		cfg.apiListenAddr,
+		cfg.apiShutdownGraceDelay,
+		metricsRegistry,
+	)
+
 	grp, grpCtx := errgroup.WithContext(ctx)
 
 	grp.Go(func() error {
@@ -99,9 +114,8 @@ func main() {
 		return nil
 	})
 
-	grp.Go(func() error {
-		return watcher.Watch(grpCtx)
-	})
+	grp.Go(func() error { return watcher.Watch(grpCtx) })
+	grp.Go(func() error { return apiServer.Serve(grpCtx) })
 
 	if err := grp.Wait(); err != nil {
 		klog.Fatal("leader-agent failed, reason: ", err)
