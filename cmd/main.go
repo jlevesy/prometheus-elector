@@ -33,7 +33,7 @@ func main() {
 	flag.Parse()
 
 	if err := cfg.validateInitConfig(); err != nil {
-		klog.Fatal("Invalid  init config: ", err)
+		klog.Fatal("Invalid init config: ", err)
 	}
 
 	reconciller := config.NewReconciller(cfg.configPath, cfg.outputPath)
@@ -98,6 +98,7 @@ func main() {
 		k8sClient,
 		reconciller,
 		notifier,
+		metricsRegistry,
 	)
 
 	if err != nil {
