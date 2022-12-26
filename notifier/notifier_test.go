@@ -1,12 +1,15 @@
 package notifier_test
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -16,6 +19,7 @@ import (
 func TestHTTPNotifierWithRetries(t *testing.T) {
 	var (
 		totalReceived int
+		reg           = prometheus.NewRegistry()
 		ctx           = context.Background()
 		srv           = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			require.Equal(t, r.Method, http.MethodPost)
@@ -26,14 +30,26 @@ func TestHTTPNotifierWithRetries(t *testing.T) {
 			}
 		}))
 		notifier = notifier.WithRetry(
-			notifier.NewHTTP(
-				srv.URL,
-				http.MethodPost,
+			notifier.WithMetrics(
+				reg,
+				notifier.NewHTTP(
+					srv.URL,
+					http.MethodPost,
+				),
 			),
 			10,
 			0*time.Second,
 		)
 	)
+
+	const wantMetrics = `
+# HELP prometheus_elector_notifier_calls_errors The total amount of times Prometheus Elector failed to notify Prometheus about a configuration update
+# TYPE prometheus_elector_notifier_calls_errors counter
+prometheus_elector_notifier_calls_errors 4
+# HELP prometheus_elector_notifier_calls_total The total amount of times Prometheus Elector notified Prometheus about a configuration update
+# TYPE prometheus_elector_notifier_calls_total counter
+prometheus_elector_notifier_calls_total{} 5
+`
 
 	defer srv.Close()
 
@@ -41,6 +57,12 @@ func TestHTTPNotifierWithRetries(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 5, totalReceived)
+	assert.NoError(t, testutil.GatherAndCompare(
+		reg,
+		bytes.NewBuffer([]byte(wantMetrics)),
+		"prometheus_elector_notifier_calls_errors",
+		"prometheus_elector_notifier_calls_total",
+	))
 }
 
 func TestHTTPNotifierExhaustRetries(t *testing.T) {

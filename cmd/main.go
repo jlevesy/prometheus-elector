@@ -58,9 +58,12 @@ func main() {
 	))
 
 	notifier := notifier.WithRetry(
-		notifier.NewHTTP(
-			cfg.notifyHTTPURL,
-			cfg.notifyHTTPMethod,
+		notifier.WithMetrics(
+			metricsRegistry,
+			notifier.NewHTTP(
+				cfg.notifyHTTPURL,
+				cfg.notifyHTTPMethod,
+			),
 		),
 		cfg.notifyRetryMaxAttempts,
 		cfg.notifyRetryDelay,
