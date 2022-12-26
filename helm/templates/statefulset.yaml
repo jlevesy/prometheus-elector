@@ -52,13 +52,26 @@ spec:
             - -config=/etc/config/prometheus-elector.yaml
             - -output=/etc/runtime/prometheus.yaml
             - -notify-http-url=http://127.0.0.1:9090/-/reload
+            - -api-listen-address=:9095
             {{- range $arg := .Values.elector.args }}
             - {{ $arg }}
             {{- end }}
+          ports:
+            - name: http
+              containerPort: 9095
+              protocol: TCP
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+{{- if .Values.elector.readinessProbe }}
+          readinessProbe:
+{{ toYaml .Values.elector.readinessProbe | indent 12 }}
+          {{- end }}
+          {{- if .Values.elector.livenessProbe }}
+          livenessProbe:
+{{ toYaml .Values.elector.livenessProbe | indent 12 }}
+          {{- end }}
           volumeMounts:
             - name: config-volume
               mountPath: /etc/config

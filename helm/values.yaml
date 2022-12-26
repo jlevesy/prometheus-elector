@@ -10,6 +10,24 @@ elector:
   image:
     repository: ghcr.io/jlevesy/prometheus-elector
     pullPolicy: IfNotPresent
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 4
+    failureThreshold: 3
+    successThreshold: 1
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 3
+    successThreshold: 1
 
 prometheus:
   env:
