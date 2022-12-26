@@ -41,6 +41,8 @@ type cliConfig struct {
 	apiListenAddr         string
 	apiShutdownGraceDelay time.Duration
 
+	runtimeMetrics bool
+
 	// Path to a kubeconfig (if running outside from the cluster).
 	kubeConfigPath string
 }
@@ -124,6 +126,7 @@ func (c *cliConfig) setupFlags() {
 	flag.BoolVar(&c.init, "init", false, "Only init the prometheus config file")
 	flag.StringVar(&c.apiListenAddr, "api-listen-address", ":9095", "HTTP listen address to use for the API.")
 	flag.DurationVar(&c.apiShutdownGraceDelay, "api-shutdown-grace-delay", 15*time.Second, "Grace delay to apply when shutting down the API server")
+	flag.BoolVar(&c.runtimeMetrics, "runtime-metrics", false, "Export go runtime metrics")
 }
 
 // this is how the http standard library validates the method in NewRequestWithContext.

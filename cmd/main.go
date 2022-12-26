@@ -52,10 +52,12 @@ func main() {
 	}
 
 	metricsRegistry := prometheus.NewRegistry()
-	metricsRegistry.MustRegister(collectors.NewBuildInfoCollector())
-	metricsRegistry.MustRegister(collectors.NewGoCollector(
-		collectors.WithGoCollectorRuntimeMetrics(collectors.MetricsAll),
-	))
+	if cfg.runtimeMetrics {
+		metricsRegistry.MustRegister(collectors.NewBuildInfoCollector())
+		metricsRegistry.MustRegister(collectors.NewGoCollector(
+			collectors.WithGoCollectorRuntimeMetrics(collectors.MetricsAll),
+		))
+	}
 
 	notifier := notifier.WithRetry(
 		notifier.WithMetrics(
