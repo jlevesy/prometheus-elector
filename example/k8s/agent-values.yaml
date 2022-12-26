@@ -20,7 +20,10 @@ configFiles:
           static_configs:
             - targets:
               - localhost:9090
-
+        - job_name: prometheus-elector
+          static_configs:
+            - targets:
+              - localhost:9095/metrics
         - job_name: 'kubernetes-nodes'
           scheme: https
           tls_config:

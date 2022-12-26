@@ -12,6 +12,7 @@ import (
 
 	"github.com/jlevesy/prometheus-elector/config"
 	"github.com/jlevesy/prometheus-elector/notifier"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Config struct {
@@ -24,7 +25,11 @@ type Config struct {
 	RetryPeriod     time.Duration
 }
 
-func Setup(cfg Config, k8sClient kubernetes.Interface, reconciller *config.Reconciler, notifier notifier.Notifier) (*leaderelection.LeaderElector, error) {
+func Setup(cfg Config, k8sClient kubernetes.Interface, reconciller *config.Reconciler, notifier notifier.Notifier, reg prometheus.Registerer) (*leaderelection.LeaderElector, error) {
+	leaderelection.SetProvider(metricsProvider(func() leaderelection.SwitchMetric {
+		return newLeaderMetrics(reg)
+	}))
+
 	le, err := leaderelection.NewLeaderElector(
 		leaderelection.LeaderElectionConfig{
 			Lock: &resourcelock.LeaseLock{
@@ -37,6 +42,7 @@ func Setup(cfg Config, k8sClient kubernetes.Interface, reconciller *config.Recon
 					Identity: cfg.MemberID,
 				},
 			},
+			Name:            cfg.MemberID, // required to properly set election metrics.
 			ReleaseOnCancel: cfg.ReleaseOnCancel,
 			LeaseDuration:   cfg.LeaseDuration,
 			RenewDeadline:   cfg.RenewDeadline,

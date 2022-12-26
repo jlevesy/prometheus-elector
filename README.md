@@ -58,7 +58,6 @@ This is still a proof of concept, until Prometheus releases https://github.com/p
 
 Here's what will come next!
 
-- Prometheus Metrics!
 - Proxy to route requests to the leader!
 - Release pipeline for the Helm chart?
 - (optional) Notify prometheus using signal ?
