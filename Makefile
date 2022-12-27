@@ -13,7 +13,7 @@ unit_test:
 ### Dev
 
 .PHONY: run
-run: create_cluster install
+run: create_cluster install_agent_example
 
 .PHONY: create_cluster
 create_cluster: ## run a local k3d cluster
@@ -26,16 +26,24 @@ create_cluster: ## run a local k3d cluster
 delete_cluster:
 	k3d cluster delete prometheus-elector-dev
 
-.PHONY: install
-install: install_agent_example install_storage
-
 .PHONY: install_agent_example
-install_agent_example: ## install an example in the current cluster
+install_agent_example: install_storage
 	helm template \
 		--set elector.image.devRef=ko://github.com/jlevesy/prometheus-elector/cmd \
 		--set prometheus.image.repository=jlevesy/prometheus \
 		--set prometheus.image.tag=allow-agent-no-remote-write \
+		--set storage.storageClass="local-path" \
 		-f ./example/k8s/agent-values.yaml \
+		prometheus-elector-dev ./helm | KO_DOCKER_REPO=prometheus-elector-registry.localhost:5000 ko apply -B -t dev -f -
+
+.PHONY: install_ha_example
+install_ha_example:
+	helm template \
+		--set elector.image.devRef=ko://github.com/jlevesy/prometheus-elector/cmd \
+		--set prometheus.image.repository=jlevesy/prometheus \
+		--set prometheus.image.tag=allow-agent-no-remote-write \
+		--set storage.storageClass="local-path" \
+		-f ./example/k8s/ha-values.yaml \
 		prometheus-elector-dev ./helm | KO_DOCKER_REPO=prometheus-elector-registry.localhost:5000 ko apply -B -t dev -f -
 
 .PHONY: install_storage
