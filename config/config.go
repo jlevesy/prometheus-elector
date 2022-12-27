@@ -30,10 +30,6 @@ func loadConfiguration(path string) (*config, error) {
 		return nil, errors.New("missing follower configuration")
 	}
 
-	if cfg.Leader == nil {
-		return nil, errors.New("missing leader configuration")
-	}
-
 	return &cfg, nil
 }
 

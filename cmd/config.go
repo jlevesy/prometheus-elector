@@ -38,8 +38,12 @@ type cliConfig struct {
 	notifyRetryDelay       time.Duration
 
 	// API setup
-	apiListenAddr         string
-	apiShutdownGraceDelay time.Duration
+	apiListenAddr                 string
+	apiShutdownGraceDelay         time.Duration
+	apiProxyEnabled               bool
+	apiProxyPrometheusLocalPort   uint
+	apiProxyPrometheusRemotePort  uint
+	apiProxyPrometheusServiceName string
 
 	runtimeMetrics bool
 
@@ -107,6 +111,20 @@ func (c *cliConfig) validateRuntimeConfig() error {
 		return errors.New("invalid api-shudown-grace-delay, should be >= 0")
 	}
 
+	if c.apiProxyEnabled {
+		if c.apiProxyPrometheusLocalPort == 0 {
+			return errors.New("invalid api-proxy-prometheus-local-port, should be > 0")
+		}
+
+		if c.apiProxyPrometheusRemotePort == 0 {
+			return errors.New("invalid api-proxy-prometheus-remote-port, should be > 0")
+		}
+
+		if c.apiProxyPrometheusServiceName == "" {
+			return errors.New("missing api-proxy-prometheus-service-name")
+		}
+	}
+
 	return nil
 }
 
@@ -126,6 +144,10 @@ func (c *cliConfig) setupFlags() {
 	flag.BoolVar(&c.init, "init", false, "Only init the prometheus config file")
 	flag.StringVar(&c.apiListenAddr, "api-listen-address", ":9095", "HTTP listen address to use for the API.")
 	flag.DurationVar(&c.apiShutdownGraceDelay, "api-shutdown-grace-delay", 15*time.Second, "Grace delay to apply when shutting down the API server")
+	flag.BoolVar(&c.apiProxyEnabled, "api-proxy-enabled", false, "Turn on leader proxy on the API")
+	flag.UintVar(&c.apiProxyPrometheusLocalPort, "api-proxy-prometheus-local-port", 9090, "Listening port of the local prometheus instance")
+	flag.UintVar(&c.apiProxyPrometheusRemotePort, "api-proxy-prometheus-remote-port", 9090, "Listening port of any remote prometheus instance")
+	flag.StringVar(&c.apiProxyPrometheusServiceName, "api-proxy-prometheus-service-name", "", "Name of the statefulset headless service")
 	flag.BoolVar(&c.runtimeMetrics, "runtime-metrics", false, "Export go runtime metrics")
 }
 
