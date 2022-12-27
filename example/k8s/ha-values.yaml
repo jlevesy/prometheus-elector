@@ -1,3 +1,6 @@
+# Turn on the leader proxy feature.
+enableLeaderProxy: true
+
 configFiles:
   prometheus-elector.yaml: |
     # Here we're only using follower config.

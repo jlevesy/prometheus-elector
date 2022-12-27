@@ -53,11 +53,17 @@ spec:
             - -output=/etc/runtime/prometheus.yaml
             - -notify-http-url=http://127.0.0.1:9090/-/reload
             - -api-listen-address=:9095
+            {{- if .Values.enableLeaderProxy }}
+            - -api-proxy-enabled
+            - -api-proxy-prometheus-service-name={{ include "prometheus-elector.fullname" . }}
+            - -api-proxy-prometheus-local-port=9090
+            - -api-proxy-prometheus-remote-port=9090
+            {{- end }}
             {{- range $arg := .Values.elector.args }}
             - {{ $arg }}
             {{- end }}
           ports:
-            - name: http
+            - name: http-elector
               containerPort: 9095
               protocol: TCP
           securityContext:
@@ -113,6 +119,9 @@ spec:
               readOnly: true
             - name: storage-volume
               mountPath: /prometheus/data-agent
+              subPath: ""
+            - name: storage-volume
+              mountPath: /prometheus/data
               subPath: ""
       {{- with .Values.nodeSelector }}
       nodeSelector:

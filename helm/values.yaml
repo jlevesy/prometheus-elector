@@ -12,8 +12,8 @@ elector:
     pullPolicy: IfNotPresent
   readinessProbe:
     httpGet:
-      path: /healthz
-      port: http
+      path: /_elector/healthz
+      port: http-elector
     initialDelaySeconds: 30
     periodSeconds: 5
     timeoutSeconds: 4
@@ -21,8 +21,8 @@ elector:
     successThreshold: 1
   livenessProbe:
     httpGet:
-      path: /healthz
-      port: http
+      path: /_elector/healthz
+      port: http-elector
     initialDelaySeconds: 30
     periodSeconds: 15
     timeoutSeconds: 10
