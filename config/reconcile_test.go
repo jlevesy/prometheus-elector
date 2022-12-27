@@ -41,14 +41,14 @@ func TestReconciler(t *testing.T) {
 			wantResultPath: "./testdata/leader_result.yaml",
 		},
 		{
+			desc:           "no leader section",
+			inputPath:      "./testdata/config_no_leader.yaml",
+			wantResultPath: "./testdata/config_no_leader_result.yaml",
+		},
+		{
 			desc:      "no follower section",
 			inputPath: "./testdata/config_no_follower.yaml",
 			wantError: errors.New("missing follower configuration"),
-		},
-		{
-			desc:      "no leader section",
-			inputPath: "./testdata/config_no_leader.yaml",
-			wantError: errors.New("missing leader configuration"),
 		},
 	} {
 		t.Run(testCase.desc, func(t *testing.T) {
