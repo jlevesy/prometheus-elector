@@ -1,14 +1,6 @@
-prometheus:
-  args:
-    - --enable-feature=agent
-
 configFiles:
   prometheus-elector.yaml: |
-    # Configuration only applied when elected leader
-    leader:
-      remote_write:
-        - url: http://storage.storage.svc.cluster.local:9090/api/v1/write
-    # Configuration always applied
+    # Here we're only using follower config.
     follower:
       global:
         scrape_interval: 15s
