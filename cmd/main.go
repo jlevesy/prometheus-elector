@@ -107,11 +107,22 @@ func main() {
 		klog.Fatal("Can't setup election", err)
 	}
 
-	apiServer := api.NewServer(
-		cfg.apiListenAddr,
-		cfg.apiShutdownGraceDelay,
+	apiServer, err := api.NewServer(
+		api.Config{
+			ListenAddress:         cfg.apiListenAddr,
+			ShutdownGraceDelay:    cfg.apiShutdownGraceDelay,
+			EnableLeaderProxy:     cfg.apiProxyEnabled,
+			PrometheusLocalPort:   cfg.apiProxyPrometheusLocalPort,
+			PrometheusRemotePort:  cfg.apiProxyPrometheusRemotePort,
+			PrometheusServiceName: cfg.apiProxyPrometheusServiceName,
+		},
+		elector,
 		metricsRegistry,
 	)
+
+	if err != nil {
+		klog.Fatal("Can't set up API server", err)
+	}
 
 	grp, grpCtx := errgroup.WithContext(ctx)
 
