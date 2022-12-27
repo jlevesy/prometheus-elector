@@ -1,40 +1,89 @@
 ## prometheus-elector
 
-`prometheus-elector` leverages Kubernetes Leader Election to make sure that only one instance of Prometheus in a replicated workload has a specific configuration enabled.
+`prometheus-elector` brings the ability of running a leader election between multiple [Prometheus](https://github.com/prometheus/prometheus) instances running in a Kubernetes cluster. It translates into the following features:
 
-### Use Case: Prometheus Agent High Availability
+- Election Aware Configuration: prometheus-elector makes sure that only one instance in a replicated prometheus workload has a certain configuration overrides. For instance, it allows to only enable remote write on the leader.
+- Election Aware Proxy: prometheus-elector can act as a reverse proxy that forwards all incoming HTTP requests to the leading instance. With that you can view your Prometheus cluster as a single instance.
 
-Prometheus (in agent mode) is commonly used to push metrics to a  storage backend like [Mimir](https://grafana.com/oss/mimir/). 
+The goal with prometheus-elector is to provide an easy to use, low maintenance, active-passive setup for Prometheus on Kubernetes.
 
-If you want to get agent high availability with [Mimir](https://grafana.com/docs/mimir), you need to enable a feature called [HA deduplication](https://grafana.com/docs/mimir/latest/operators-guide/configure/configuring-high-availability-deduplication/), that requires nothing less than a KV store (could it be etcd or consul), which is a difficult thing to run and maintain...
+What prometheus-elector is not:
 
-Using `prometheus-elector`, we can instead make sure that only one instance has `remote_write` enabled at any point of time and guarantee a reasonable fallback delay when the prometheus leader becomes unavailable.
+- A "scalable" solution in term of time-series cardinality. With prometheus-elector you still have one Prometheus instance doing the job. Please look into other solutions (like [Mimir](https://github.com/grafana/mimir)) to achieve this.
+- A "zero-downtime" solution. When the leading instance goes down, you still have a short period of time (seconds) before another replica takes over the leadership.
+- A "portable" solution. It assumes running on Kubernetes, and relies on [Kubernetes leader election](https://kubernetes.io/blog/2016/01/simple-leader-election-with-kubernetes/).
 
+### Use Case: Active Passive Prometheus Agent Setup
 
-A known limitation at the moment is that prometheus in agent mode requires at least one [remote_write to start](https://github.com/prometheus/prometheus/blob/main/config/config.go#L115), which is the most important issue right now. This demo is running a [patched version of prometheus](https://github.com/jlevesy/prometheus/tree/allow-agent-no-remote-write) that removes this constraint without issues.
+Prometheus (in agent mode) can be used to push metrics to a remote storage backend like [Mimir](https://grafana.com/oss/mimir/). While your storage backend might be highly available, you probably also want this property on the agent side as well.
+
+One approach of this problem is to have multiple agents pushing the same set of metrics to the storage backend. This requires to run some sort of metrics deduplication on the storage backend side to ensure correctness.
+
+Using `prometheus-elector`, we can instead make sure that only one Prometheus instance has `remote_write` enabled at any point of time and guarantee a reasonable delay (seconds) for another instance to take over when leading instance becomes unavailable. It minimizes (avoids?) data loss and avoids running some expensive deduplication logic on the storage backend side.
+
+![illustration](./docs/assets/agent-diagram.svg)
+
+You can find the necessary configuration for this use case in the [example directory](./example/k8s/agent-values.yaml)
+
+#### Running an Example of this Setup
+
+You need [ko](https://github.com/ko-build/ko), `kubectl` and [k3d](https://github.com/k3d-io/k3d) and docker installed, from there run `make create_cluster install_agent_example`.
+
+This command:
+
+- Creates a k3d cluster
+- Installs a storage backend Prometheus instance (in the `storage` namespace), configured to received metrics using the `remote_write` API.
+- Installs a statefulset running two replicas of `prometheus-elector` and `prometheus` in agent mode. Only one of them will push metrics at any point of time.
+
+#### Known Limitations
+
+A known limitation at the moment is that Prometheus in agent mode requires at least one [remote_write to start](https://github.com/prometheus/prometheus/blob/main/config/config.go#L115), which is the most important issue right now. This demo is running a [patched version of prometheus](https://github.com/jlevesy/prometheus/tree/allow-agent-no-remote-write) that removes this constraint without issues.
 I reopened [the discussion on that topic](https://github.com/prometheus/prometheus/issues/9611) https://github.com/prometheus/prometheus/issues/11665, and got positive feedback!
 
-The next version of Prometheus will fully support this use case!
+The next version of Prometheus (2.42.x probably) will fully support this use case!
 
-### Use Case: Prometheus High Availability
+### Use Case: Active Passive Prometheus
 
-This one is more theoretical at the moment, but we could have an Active passive setup of prometheus, with the leader only having alerts enabled.
-The problem in that case is the read path, because metrics consumers like Grafana, don't properly support having multiple sources.
-However, if I could find a way to have prometheus-elector proxy all the requests to the current active leader, this would solve this issue! If the leader receives the requests, it fowards it to its prometheus instance. If the follower receives the request, it forwards it to the leader!
+One issue running multiple Prometheus instances in paralle is that their dataset slightly diverges, which makes loadbalancing requests accross multiple instances difficult from a metrics consumer perspective. You'll need a metrics aware reverse proxy like [promxy](https://github.com/jacksontj/promxy) that aggregates the two sources to achieve this properly.
+
+prometheus-elector takes a different approach and embeds a reverse proxy that forwards all received requests to the currently leading instance. While this solution doesn't provide load balancing, it allows, at minimal costs, to get consistent data independently of which replica is receiving the request initially.
+
+![illustration](./docs/assets/ha-diagram.svg)
+
+You can find the necessary configuration for this use case in the [example directory](./example/k8s/ha-values.yaml)
+
+#### Running an Example of this setup
+
+You need [ko](https://github.com/ko-build/ko), `kubectl` and [k3d](https://github.com/k3d-io/k3d) and docker installed, from there run `make create_cluster install_ha_example`.
+
+This command:
+
+- Creates a k3d cluster
+- Installs a statefulset running two replicas of `prometheus-elector` and `prometheus`.
+
+From there you can port forward to one of the Prometheus pods (`k port-forward service/prometheus-elector-dev-leader 9095:80`) and start hitting the API through the port 9095 of the pod.
 
 ### How it Works?
 
-It is implemented using a sidecar container that rewites the configuration and injects `remote_write` rules in the configuration when elected leader. The setup is very similar to the usual `configmap-reloader` sidecar in Kubernetes deployment.
+It is implemented using a sidecar container that rewrites the configuration and injects `remote_write` rules in the configuration when elected leader. The setup is very similar to the usual [configmap-reloader](https://github.com/jimmidyson/configmap-reload) sidecar in Kubernetes deployment.
 
-The configuration file differs a little from Prometheus, it is actually two Prometheus configurations in the same file:
+The prometheus-elector container then run a [Kubernetes leader election](https://kubernetes.io/blog/2016/01/simple-leader-election-with-kubernetes/) and an API server.
 
-- The `follower` section indicates the prometheus configuration to apply in follower mode
+#### Election Aware Configuration
+
+prometheus-elector accepts a configuration composed by two major sections:
+
+- The `follower` section indicates the Prometheus configuration to apply in follower mode. This configuration is always applied.
 - The `leader` section indicates the changes to apply to the follower configuration when the instance is in elected leader. Please note that those changes gets "appended" to the follower configuration.
+
+Both those sections have the same model that the Prometheus configuration.
+
+When a replica is elected leader, prometheus-elector generates a new configuration file that carries the follower configuration merged with the override values provided under the `leader` section. And then tells Prometheus to reload its configuration using its lifecycle management API. If the replica is follower, only the follower section is generated, without the `leader` overrides.
 
 Here's an example that enables a `remote_write` target only when leader.
 
 ```yaml
-# Follower is the configuration being applied when the instance is only follower.
+# configuration applied when the instance is only follower.
 follower:
   scrape_configs:
   - job_name:       'some job'
@@ -42,11 +91,20 @@ follower:
     static_configs:
     - targets: ['localhost:8080']
 
-# Follower is the configuration being applied when the instance is leader.
+# overrides to the follower configuration applied when the instance is leader.
 leader:
   remote_writes:
     - url: http://remote.write.com
 ```
+
+#### Election Aware Proxy
+
+prometheus-elector can expose a reverse proxy that forwards all the received calls to the leading instance.
+
+As it is implemented, it relies on a few assumptions:
+
+- The `member_id` of the replica is the `pod` name.
+- The `<pod_name>.<service_name>` domain name is resolvable via DNS. This is a property of statfulsets in Kubernetes, but it requires the cluster to have DNS support enabled.
 
 ### Installing Prometheus Elector
 
@@ -58,17 +116,60 @@ This is still a proof of concept, until Prometheus releases https://github.com/p
 
 Here's what will come next!
 
-- Proxy to route requests to the leader!
 - Release pipeline for the Helm chart?
 - (optional) Notify prometheus using signal ?
 
-### Running an Example Locally
+### API Reference
 
-You need `ko`, `kubectl` and `k3d`, from there run `make run`
+If the leader proxy is enabled, all HTTP calls received on the port 9095 are forwarded to the leader instance on port 9090 by default.
 
-This will setup:
+`prometheus-elector` also exposes a few endpoints as well:
 
-- [An agent workload](./examples/k8s/agent/agent.yaml) statefulset with the leader election going on, only one of them will push metrics to the storage
-- [A storage storage](./examples/k8s/storage/storage.yaml) (prometheus [with the remote_write receiver enabeld](https://prometheus.io/docs/prometheus/latest/querying/api/#remote-write-receiver)) where all the metrics get pushed to
+- `/_elector/healthz`: healthcheck endpoint
+- `/_elector/leader`: returns information about the state of the election.
+- `/_elector/metrics`: Prometheus metrics endpoint.
 
-You can then port-forward to the storage pod via `kubectl port-forward -n storage storage-0 9090:9090` and see some kube metrics flowing.
+### Configuration Reference
+
+```
+  -api-listen-address string
+        HTTP listen address to use for the API. (default ":9095")
+  -api-proxy-enabled
+        Turn on leader proxy on the API
+  -api-proxy-prometheus-local-port uint
+        Listening port of the local prometheus instance (default 9090)
+  -api-proxy-prometheus-remote-port uint
+        Listening port of any remote prometheus instance (default 9090)
+  -api-proxy-prometheus-service-name string
+        Name of the statefulset headless service
+  -api-shutdown-grace-delay duration
+        Grace delay to apply when shutting down the API server (default 15s)
+  -config string
+        Path of the prometheus-elector configuration
+  -init
+        Only init the prometheus config file
+  -kubeconfig string
+        Path to a kubeconfig. Only required if out-of-cluster.
+  -lease-duration duration
+        Duration of a lease, client wait the full duration of a lease before trying to take it over (default 15s)
+  -lease-name string
+        Name of lease lock
+  -lease-namespace string
+        Name of lease lock namespace
+  -lease-renew-deadline duration
+        Maximum duration spent trying to renew the lease (default 10s)
+  -lease-retry-period duration
+        Delay between two attempts of taking/renewing the lease (default 2s)
+  -notify-http-method string
+        HTTP method to use when sending the reload config request. (default "POST")
+  -notify-http-url string
+        URL to the reload configuration endpoint
+  -notify-retry-delay duration
+        How much time to wait between two notify retries. (default 10s)
+  -notify-retry-max-attempts int
+        How many times to retry notifying prometheus on failure. (default 5)
+  -output string
+        Path to write the active prometheus configuration
+  -runtime-metrics
+        Export go runtime metrics
+````
