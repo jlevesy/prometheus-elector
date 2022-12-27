@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -16,22 +17,57 @@ type Server struct {
 	shutdownGraceDelay time.Duration
 }
 
-func NewServer(listenAddr string, shutdownGraceDelay time.Duration, metricsRegistry prometheus.Gatherer) *Server {
+type Config struct {
+	// HTTP Server configuration.
+	ListenAddress      string
+	ShutdownGraceDelay time.Duration
+
+	// Proxy Configuration.
+	EnableLeaderProxy     bool
+	PrometheusLocalPort   uint
+	PrometheusRemotePort  uint
+	PrometheusServiceName string
+}
+
+type LeaderStatus struct {
+	IsLeader      bool   `json:"is_leader"`
+	CurrentLeader string `json:"current_leader"`
+}
+
+func NewServer(cfg Config, leaderStatus LeaderStatusRetriever, metricsRegistry prometheus.Gatherer) (*Server, error) {
 	var mux http.ServeMux
 
-	mux.HandleFunc("/healthz", func(rw http.ResponseWriter, r *http.Request) { rw.WriteHeader(http.StatusOK) })
-	mux.Handle("/metrics", promhttp.HandlerFor(
+	mux.HandleFunc("/_elector/leader", func(rw http.ResponseWriter, r *http.Request) {
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+
+		_ = json.NewEncoder(rw).Encode(LeaderStatus{
+			IsLeader:      leaderStatus.IsLeader(),
+			CurrentLeader: leaderStatus.GetLeader(),
+		})
+	})
+	mux.HandleFunc("/_elector/healthz", func(rw http.ResponseWriter, r *http.Request) { rw.WriteHeader(http.StatusOK) })
+	mux.Handle("/_elector/metrics", promhttp.HandlerFor(
 		metricsRegistry,
 		promhttp.HandlerOpts{EnableOpenMetrics: true},
 	))
 
+	if cfg.EnableLeaderProxy {
+		leaderProxy, err := newProxy(cfg, leaderStatus)
+		if err != nil {
+			return nil, err
+		}
+
+		mux.Handle("/", leaderProxy)
+	}
+
 	return &Server{
-		shutdownGraceDelay: shutdownGraceDelay,
+		shutdownGraceDelay: cfg.ShutdownGraceDelay,
 		httpSrv: http.Server{
-			Addr:    listenAddr,
+			Addr:    cfg.ListenAddress,
 			Handler: &mux,
 		},
-	}
+	}, nil
 }
 
 func (s *Server) Serve(ctx context.Context) error {
