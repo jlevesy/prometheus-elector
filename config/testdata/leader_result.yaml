@@ -1,51 +1,15 @@
-global:
-  scrape_interval: 1m
-  scrape_timeout: 10s
-  evaluation_interval: 1m
+remote_write:
+- url: http://remote.write.com
 scrape_configs:
 - job_name: foobar
-  honor_timestamps: true
-  scrape_interval: 5s
-  scrape_timeout: 5s
-  metrics_path: /metrics
-  scheme: http
-  follow_redirects: true
-  enable_http2: true
   metric_relabel_configs:
-  - separator: ;
+  - action: labeldrop
     regex: version
-    replacement: $1
-    action: labeldrop
+  scrape_interval: 5s
   static_configs:
   - targets:
     - localhost:8080
 - job_name: kubiznetes
-  honor_timestamps: true
-  scrape_interval: 10s
-  scrape_timeout: 10s
-  metrics_path: /metrics
-  scheme: http
-  follow_redirects: true
-  enable_http2: true
   kubernetes_sd_configs:
   - role: node
-    kubeconfig_file: ""
-    follow_redirects: true
-    enable_http2: true
-remote_write:
-- url: http://remote.write.com
-  remote_timeout: 30s
-  follow_redirects: true
-  enable_http2: true
-  queue_config:
-    capacity: 10000
-    max_shards: 50
-    min_shards: 1
-    max_samples_per_send: 2000
-    batch_send_deadline: 5s
-    min_backoff: 30ms
-    max_backoff: 5s
-  metadata_config:
-    send: true
-    send_interval: 1m
-    max_samples_per_send: 2000
+  scrape_interval: 10s

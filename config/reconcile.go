@@ -38,7 +38,7 @@ func (r *Reconciler) Reconcile(ctx context.Context) error {
 
 	if cfg.Leader != nil && r.leaderChecker != nil && r.leaderChecker.IsLeader() {
 		if err := mergo.Merge(
-			targetCfg,
+			&targetCfg,
 			cfg.Leader,
 			mergo.WithOverride,
 			mergo.WithAppendSlice,

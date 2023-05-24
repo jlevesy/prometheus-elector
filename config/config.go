@@ -4,14 +4,12 @@ import (
 	"errors"
 	"os"
 
-	promconfig "github.com/prometheus/prometheus/config"
-	_ "github.com/prometheus/prometheus/plugins"
 	"gopkg.in/yaml.v2"
 )
 
 type config struct {
-	Follower *promconfig.Config `yaml:"follower"`
-	Leader   *promconfig.Config `yaml:"leader"`
+	Follower map[string]any `yaml:"follower"`
+	Leader   map[string]any `yaml:"leader"`
 }
 
 func loadConfiguration(path string) (*config, error) {
@@ -33,7 +31,7 @@ func loadConfiguration(path string) (*config, error) {
 	return &cfg, nil
 }
 
-func writeConfiguration(path string, cfg *promconfig.Config) error {
+func writeConfiguration(path string, cfg map[string]any) error {
 	b, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err

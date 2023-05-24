@@ -73,7 +73,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
-          image: quay.io/prometheus/prometheus:v2.40.4
+          image: quay.io/prometheus/prometheus:v2.44.0
           imagePullPolicy: IfNotPresent
           args:
             - --config.file=/etc/config/prometheus.yaml

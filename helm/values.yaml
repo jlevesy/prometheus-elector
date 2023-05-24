@@ -54,7 +54,7 @@ prometheus:
   image:
     repository: prom/prometheus
     pullPolicy: IfNotPresent
-    tag: v2.40.6
+    tag: v2.44.0
 
 imagePullSecrets: []
 nameOverride: ""
