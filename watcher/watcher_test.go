@@ -25,19 +25,9 @@ follower:
     - targets: ['localhost:8080']
 `
 
-const wantConfig = `global:
-  scrape_interval: 1m
-  scrape_timeout: 10s
-  evaluation_interval: 1m
-scrape_configs:
+const wantConfig = `scrape_configs:
 - job_name: foobar
-  honor_timestamps: true
   scrape_interval: 5s
-  scrape_timeout: 5s
-  metrics_path: /metrics
-  scheme: http
-  follow_redirects: true
-  enable_http2: true
   static_configs:
   - targets:
     - localhost:8080
