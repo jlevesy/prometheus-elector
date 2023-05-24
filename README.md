@@ -35,13 +35,6 @@ This command:
 - Installs a storage backend Prometheus instance (in the `storage` namespace), configured to received metrics using the `remote_write` API.
 - Installs a statefulset running two replicas of `prometheus-elector` and `prometheus` in agent mode. Only one of them will push metrics at any point of time.
 
-#### Known Limitations
-
-A known limitation at the moment is that Prometheus in agent mode requires at least one [remote_write to start](https://github.com/prometheus/prometheus/blob/main/config/config.go#L115), which is the most important issue right now. This demo is running a [patched version of prometheus](https://github.com/jlevesy/prometheus/tree/allow-agent-no-remote-write) that removes this constraint without issues.
-I reopened [the discussion on that topic](https://github.com/prometheus/prometheus/issues/9611) https://github.com/prometheus/prometheus/issues/11665, and got positive feedback!
-
-The next version of Prometheus (2.42.x probably) will fully support this use case!
-
 ### Use Case: Active Passive Prometheus
 
 One issue running multiple Prometheus instances in paralle is that their dataset slightly diverges, which makes loadbalancing requests accross multiple instances difficult from a metrics consumer perspective. You'll need a metrics aware reverse proxy like [promxy](https://github.com/jacksontj/promxy) that aggregates the two sources to achieve this properly.
@@ -109,15 +102,6 @@ As it is implemented, it relies on a few assumptions:
 ### Installing Prometheus Elector
 
 You can find [an helm chart](./helm) in this repository, as well as [values for the HA agent example](./example/k8s/agent-values.yaml).
-
-### Current Status
-
-This is still a proof of concept, until Prometheus releases https://github.com/prometheus/prometheus/pull/11709, use this at your own risks! If you like the idea feel free to let me know!
-
-Here's what will come next!
-
-- Release pipeline for the Helm chart?
-- (optional) Notify prometheus using signal ?
 
 ### API Reference
 
