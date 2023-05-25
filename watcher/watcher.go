@@ -57,12 +57,12 @@ func (f *FileWatcher) Watch(ctx context.Context) error {
 			klog.Info("Configuration changed, reconciling...")
 
 			if err := f.reconciler.Reconcile(ctx); err != nil {
-				klog.ErrorS(err, "reconciler reported an error")
+				klog.ErrorS(err, "Reconciler reported an error")
 				continue
 			}
 
 			if err := f.notifier.Notify(ctx); err != nil {
-				klog.ErrorS(err, "unable to notify prometheus")
+				klog.ErrorS(err, "Unable to notify prometheus")
 				continue
 			}
 		case err, ok := <-f.fsWatcher.Errors:
@@ -70,7 +70,7 @@ func (f *FileWatcher) Watch(ctx context.Context) error {
 				return nil
 			}
 
-			klog.ErrorS(err, "watcher reported an error")
+			klog.ErrorS(err, "Watcher reported an error")
 		}
 	}
 }

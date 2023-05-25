@@ -154,6 +154,10 @@ If the leader proxy is enabled, all HTTP calls received on the port 9095 are for
         How many times to retry notifying prometheus on failure. (default 5)
   -output string
         Path to write the active prometheus configuration
+  -readiness-http-url string
+        URL to Prometheus ready endpoint
+  -readiness-poll-period duration
+        Poll period prometheus readiness check (default 5s)
   -runtime-metrics
         Export go runtime metrics
-````
+```

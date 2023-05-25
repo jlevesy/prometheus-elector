@@ -31,7 +31,7 @@ func (r *retryNotifier) Notify(ctx context.Context) error {
 		}
 
 		if j > 0 {
-			klog.ErrorS(err, "failed to notify prometheus, will retry...", "attempt", r.maxAttempts-j, "maxAttempts", r.maxAttempts)
+			klog.ErrorS(err, "Failed to notify prometheus, will retry...", "attempt", r.maxAttempts-j, "maxAttempts", r.maxAttempts)
 			time.Sleep(r.delay)
 		}
 	}
