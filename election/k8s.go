@@ -49,7 +49,7 @@ func Setup(cfg Config, k8sClient kubernetes.Interface, reconciller *config.Recon
 			RetryPeriod:     cfg.RetryPeriod,
 			Callbacks: leaderelection.LeaderCallbacks{
 				OnStartedLeading: func(ctx context.Context) {
-					klog.Info("I'm leading, setting leader configuration.")
+					klog.Info("Leading, applying leader configuration.")
 
 					if err := reconciller.Reconcile(ctx); err != nil {
 						klog.ErrorS(err, "Failed to reconcile configurations")
@@ -62,12 +62,13 @@ func Setup(cfg Config, k8sClient kubernetes.Interface, reconciller *config.Recon
 					}
 				},
 				OnStoppedLeading: func() {
-					klog.Info("I stopped leading, setting follower configuration.")
+					klog.Info("Stopped leading, applying follower configuration.")
 
 					ctx := context.Background()
 
 					if err := reconciller.Reconcile(ctx); err != nil {
-						klog.ErrorS(err, "failed to sync")
+						klog.ErrorS(err, "Failed to reconcile configurations")
+						return
 					}
 
 					if err := notifier.Notify(ctx); err != nil {

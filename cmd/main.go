@@ -146,8 +146,8 @@ func main() {
 	grp.Go(func() error { return apiServer.Serve(grpCtx) })
 
 	if err := grp.Wait(); err != nil {
-		klog.Fatal("leader-agent failed, reason: ", err)
+		klog.Fatal("Error while running prometheus-elector, reason: ", err)
 	}
 
-	klog.Info("Leader-Agent exited successfully")
+	klog.Info("prometheus-elector exited successfully")
 }
