@@ -37,6 +37,10 @@ type cliConfig struct {
 	notifyRetryMaxAttempts int
 	notifyRetryDelay       time.Duration
 
+	// How to wait for prometheus to be ready.
+	readinessHTTPURL    string
+	readinessPollPeriod time.Duration
+
 	// API setup
 	apiListenAddr                 string
 	apiShutdownGraceDelay         time.Duration
@@ -103,6 +107,10 @@ func (c *cliConfig) validateRuntimeConfig() error {
 		return errors.New("invalid notify-retry-delay, should be >= 1")
 	}
 
+	if c.readinessPollPeriod < 1 {
+		return errors.New("invalid readiness-poll-period, should be >= 1")
+	}
+
 	if c.apiListenAddr == "" {
 		return errors.New("missing api-listen-address")
 	}
@@ -137,6 +145,8 @@ func (c *cliConfig) setupFlags() {
 	flag.StringVar(&c.kubeConfigPath, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&c.configPath, "config", "", "Path of the prometheus-elector configuration")
 	flag.StringVar(&c.outputPath, "output", "", "Path to write the active prometheus configuration")
+	flag.StringVar(&c.readinessHTTPURL, "readiness-http-url", "", "URL to Prometheus ready endpoint")
+	flag.DurationVar(&c.readinessPollPeriod, "readiness-poll-period", 5*time.Second, "Poll period prometheus readiness check")
 	flag.StringVar(&c.notifyHTTPURL, "notify-http-url", "", "URL to the reload configuration endpoint")
 	flag.StringVar(&c.notifyHTTPMethod, "notify-http-method", http.MethodPost, "HTTP method to use when sending the reload config request.")
 	flag.IntVar(&c.notifyRetryMaxAttempts, "notify-retry-max-attempts", 5, "How many times to retry notifying prometheus on failure.")

@@ -16,6 +16,7 @@ import (
 	"github.com/jlevesy/prometheus-elector/config"
 	"github.com/jlevesy/prometheus-elector/election"
 	"github.com/jlevesy/prometheus-elector/notifier"
+	"github.com/jlevesy/prometheus-elector/readiness"
 	"github.com/jlevesy/prometheus-elector/watcher"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -81,12 +82,6 @@ func main() {
 		klog.Fatal("Can't build the k8s client: ", err)
 	}
 
-	watcher, err := watcher.New(filepath.Dir(cfg.configPath), reconciller, notifier)
-	if err != nil {
-		klog.Fatal("Can't create the watcher: ", err)
-	}
-	defer watcher.Close()
-
 	elector, err := election.Setup(
 		election.Config{
 			LeaseName:       cfg.leaseName,
@@ -107,6 +102,12 @@ func main() {
 		klog.Fatal("Can't setup election", err)
 	}
 
+	watcher, err := watcher.New(filepath.Dir(cfg.configPath), reconciller, notifier)
+	if err != nil {
+		klog.Fatal("Can't create the watcher: ", err)
+	}
+	defer watcher.Close()
+
 	apiServer, err := api.NewServer(
 		api.Config{
 			ListenAddress:         cfg.apiListenAddr,
@@ -124,9 +125,19 @@ func main() {
 		klog.Fatal("Can't set up API server", err)
 	}
 
+	var readinessWaiter readiness.Waiter = readiness.NoopWaiter{}
+
+	if cfg.readinessHTTPURL != "" {
+		readinessWaiter = readiness.NewHTTP(cfg.readinessHTTPURL, cfg.readinessPollPeriod)
+	}
+
 	grp, grpCtx := errgroup.WithContext(ctx)
 
 	grp.Go(func() error {
+		if err := readinessWaiter.Wait(grpCtx); err != nil {
+			return err
+		}
+
 		elector.Run(grpCtx)
 		return nil
 	})
