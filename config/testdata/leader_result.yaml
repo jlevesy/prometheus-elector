@@ -13,3 +13,7 @@ scrape_configs:
   kubernetes_sd_configs:
   - role: node
   scrape_interval: 10s
+- job_name: kubaznetes
+  kubernetes_sd_configs:
+  - role: node
+  scrape_interval: 10s
