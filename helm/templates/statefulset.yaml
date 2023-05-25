@@ -52,6 +52,7 @@ spec:
             - -config=/etc/config/prometheus-elector.yaml
             - -output=/etc/runtime/prometheus.yaml
             - -notify-http-url=http://127.0.0.1:9090/-/reload
+            - -readiness-http-url=http://127.0.0.1:9090/-/ready
             - -api-listen-address=:9095
             {{- if .Values.enableLeaderProxy }}
             - -api-proxy-enabled
