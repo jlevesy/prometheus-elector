@@ -4,17 +4,14 @@ import (
 	"context"
 
 	"github.com/imdario/mergo"
+	"github.com/jlevesy/prometheus-elector/election"
 )
-
-type LeaderChecker interface {
-	IsLeader() bool
-}
 
 type Reconciler struct {
 	sourcePath string
 	outputPath string
 
-	leaderChecker LeaderChecker
+	leaderChecker election.LeaderChecker
 }
 
 func NewReconciller(src, out string) *Reconciler {
@@ -24,7 +21,7 @@ func NewReconciller(src, out string) *Reconciler {
 	}
 }
 
-func (r *Reconciler) SetLeaderChecker(lc LeaderChecker) {
+func (r *Reconciler) SetLeaderChecker(lc election.LeaderChecker) {
 	r.leaderChecker = lc
 }
 
