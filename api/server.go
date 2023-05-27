@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jlevesy/prometheus-elector/election"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/klog/v2"
@@ -34,7 +35,7 @@ type LeaderStatus struct {
 	CurrentLeader string `json:"current_leader"`
 }
 
-func NewServer(cfg Config, leaderStatus LeaderStatusRetriever, metricsRegistry prometheus.Gatherer) (*Server, error) {
+func NewServer(cfg Config, electionStatus election.Status, metricsRegistry prometheus.Gatherer) (*Server, error) {
 	var mux http.ServeMux
 
 	mux.HandleFunc("/_elector/leader", func(rw http.ResponseWriter, r *http.Request) {
@@ -42,8 +43,8 @@ func NewServer(cfg Config, leaderStatus LeaderStatusRetriever, metricsRegistry p
 		rw.WriteHeader(http.StatusOK)
 
 		_ = json.NewEncoder(rw).Encode(LeaderStatus{
-			IsLeader:      leaderStatus.IsLeader(),
-			CurrentLeader: leaderStatus.GetLeader(),
+			IsLeader:      electionStatus.IsLeader(),
+			CurrentLeader: electionStatus.GetLeader(),
 		})
 	})
 	mux.HandleFunc("/_elector/healthz", func(rw http.ResponseWriter, r *http.Request) { rw.WriteHeader(http.StatusOK) })
@@ -53,7 +54,7 @@ func NewServer(cfg Config, leaderStatus LeaderStatusRetriever, metricsRegistry p
 	))
 
 	if cfg.EnableLeaderProxy {
-		leaderProxy, err := newProxy(cfg, leaderStatus)
+		leaderProxy, err := newProxy(cfg, electionStatus)
 		if err != nil {
 			return nil, err
 		}

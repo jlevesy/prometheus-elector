@@ -7,22 +7,18 @@ import (
 	"net/url"
 	"sync"
 
+	"github.com/jlevesy/prometheus-elector/election"
 	"k8s.io/klog/v2"
 )
 
-type LeaderStatusRetriever interface {
-	GetLeader() string
-	IsLeader() bool
-}
-
 type proxy struct {
-	leaderStatus LeaderStatusRetriever
+	electionStatus election.Status
 
 	localProxy http.Handler
 	proxyCache proxyCache
 }
 
-func newProxy(cfg Config, leaderStatus LeaderStatusRetriever) (*proxy, error) {
+func newProxy(cfg Config, electionStatus election.Status) (*proxy, error) {
 	localProxy, err := newReverseProxy(
 		fmt.Sprintf("http://localhost:%d", cfg.PrometheusLocalPort),
 	)
@@ -31,8 +27,8 @@ func newProxy(cfg Config, leaderStatus LeaderStatusRetriever) (*proxy, error) {
 	}
 
 	return &proxy{
-		leaderStatus: leaderStatus,
-		localProxy:   localProxy,
+		electionStatus: electionStatus,
+		localProxy:     localProxy,
 		proxyCache: proxyCache{
 			proxies: make(map[string]http.Handler),
 			newProxy: func(memberID string) (http.Handler, error) {
@@ -45,12 +41,12 @@ func newProxy(cfg Config, leaderStatus LeaderStatusRetriever) (*proxy, error) {
 }
 
 func (p *proxy) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	if p.leaderStatus.IsLeader() {
+	if p.electionStatus.IsLeader() {
 		p.localProxy.ServeHTTP(rw, r)
 		return
 	}
 
-	proxy, err := p.proxyCache.findOrCreateProxy(p.leaderStatus.GetLeader())
+	proxy, err := p.proxyCache.findOrCreateProxy(p.electionStatus.GetLeader())
 	if err != nil {
 		klog.ErrorS(err, "unable to retrieve proxy")
 		http.Error(rw, "Something unexpected happened", http.StatusInternalServerError)
