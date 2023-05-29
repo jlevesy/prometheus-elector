@@ -19,7 +19,11 @@ Prometheus (in agent mode) can be used to push metrics to a remote storage backe
 
 One approach of this problem is to have multiple agents pushing the same set of metrics to the storage backend. This requires to run some sort of metrics deduplication on the storage backend side to ensure correctness.
 
-Using `prometheus-elector`, we can instead make sure that only one Prometheus instance has `remote_write` enabled at any point of time and guarantee a reasonable delay (seconds) for another instance to take over when leading instance becomes unavailable. It minimizes (avoids?) data loss and avoids running some expensive deduplication logic on the storage backend side.
+Using `prometheus-elector`, we can instead make sure that only one Prometheus instance has `remote_write` enabled at any point of time and guarantee a reasonable delay (seconds) for another instance to take over when leading instance becomes unavailable. This brings the following advantages:
+
+- It minimizes (avoids?) data loss
+- It avoids running some expensive deduplication logic on the storage backend side
+- It is also much more efficient in term of resource usage (RAM and Network) because only one replica does the scrapping and pushing samples
 
 ![illustration](./docs/assets/agent-diagram.svg)
 
@@ -99,6 +103,13 @@ As it is implemented, it relies on a few assumptions:
 - The `member_id` of the replica is the `pod` name.
 - The `<pod_name>.<service_name>` domain name is resolvable via DNS. This is a property of statfulsets in Kubernetes, but it requires the cluster to have DNS support enabled.
 
+#### Monitoring the Local Prometheus
+
+    prometheus-elector also continuously monitors its local Prometheus instance to optimize its participation to the elader election to minimize downtime:
+
+- When starting, it waits for the local prometheus instance to be ready before taking part to the election
+- It automatically leaves the election if the local Prometheus instance is not considered healthy.It then joins back as soon as the local instance goes back to an healthy state.
+
 ### Installing Prometheus Elector
 
 You can find [an helm chart](./helm) in this repository, as well as [values for the HA agent example](./example/k8s/agent-values.yaml).
@@ -117,7 +128,7 @@ If the leader proxy is enabled, all HTTP calls received on the port 9095 are for
 
 ```
   -api-listen-address string
-        HTTP listen address to use for the API. (default ":9095")
+        HTTP listen address for the API. (default ":9095")
   -api-proxy-enabled
         Turn on leader proxy on the API
   -api-proxy-prometheus-local-port uint
@@ -130,6 +141,16 @@ If the leader proxy is enabled, all HTTP calls received on the port 9095 are for
         Grace delay to apply when shutting down the API server (default 15s)
   -config string
         Path of the prometheus-elector configuration
+  -healthcheck-failure-threshold int
+        Amount of consecutives failures to consider Prometheus unhealthy (default 3)
+  -healthcheck-http-url string
+        URL to the Prometheus health endpoint
+  -healthcheck-period duration
+        Healthcheck period (default 5s)
+  -healthcheck-success-threshold int
+        Amount of consecutives success to consider Prometheus healthy (default 3)
+  -healthcheck-timeout duration
+        HTTP timeout for healthchecks (default 2s)
   -init
         Only init the prometheus config file
   -kubeconfig string
@@ -137,27 +158,31 @@ If the leader proxy is enabled, all HTTP calls received on the port 9095 are for
   -lease-duration duration
         Duration of a lease, client wait the full duration of a lease before trying to take it over (default 15s)
   -lease-name string
-        Name of lease lock
+        Name of lease resource
   -lease-namespace string
-        Name of lease lock namespace
+        Name of lease resource namespace
   -lease-renew-deadline duration
         Maximum duration spent trying to renew the lease (default 10s)
   -lease-retry-period duration
         Delay between two attempts of taking/renewing the lease (default 2s)
   -notify-http-method string
-        HTTP method to use when sending the reload config request. (default "POST")
+        HTTP method to use when sending the reload config request (default "POST")
   -notify-http-url string
         URL to the reload configuration endpoint
   -notify-retry-delay duration
-        How much time to wait between two notify retries. (default 10s)
+        Delay between two notify retries. (default 10s)
   -notify-retry-max-attempts int
-        How many times to retry notifying prometheus on failure. (default 5)
+        How many retries for configuration update (default 5)
+  -notify-timeout duration
+        HTTP timeout for notify retries. (default 2s)
   -output string
-        Path to write the active prometheus configuration
+        Path to write the Prometheus configuration
   -readiness-http-url string
-        URL to Prometheus ready endpoint
+        URL to the Prometheus ready endpoint
   -readiness-poll-period duration
         Poll period prometheus readiness check (default 5s)
+  -readiness-timeout duration
+        HTTP timeout for readiness calls (default 2s)
   -runtime-metrics
         Export go runtime metrics
 ```
