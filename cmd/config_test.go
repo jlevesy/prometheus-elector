@@ -51,18 +51,22 @@ func TestCliConfig_ValidateInitConfig(t *testing.T) {
 }
 
 var goodConfig = cliConfig{
-	leaseName:              "lease",
-	leaseNamespace:         "namespace",
-	memberID:               "bloupi",
-	notifyHTTPURL:          "http://reload.com",
-	notifyHTTPMethod:       http.MethodPost,
-	notifyRetryMaxAttempts: 1,
-	notifyRetryDelay:       10 * time.Second,
-	notifyTimeout:          time.Second,
-	readinessPollPeriod:    10 * time.Second,
-	readinessTimeout:       time.Second,
-	apiListenAddr:          ":5678",
-	apiShutdownGraceDelay:  15 * time.Second,
+	leaseName:                   "lease",
+	leaseNamespace:              "namespace",
+	memberID:                    "bloupi",
+	notifyHTTPURL:               "http://reload.com",
+	notifyHTTPMethod:            http.MethodPost,
+	notifyRetryMaxAttempts:      1,
+	notifyRetryDelay:            10 * time.Second,
+	notifyTimeout:               time.Second,
+	readinessPollPeriod:         10 * time.Second,
+	readinessTimeout:            time.Second,
+	healthcheckPeriod:           10 * time.Second,
+	healthcheckTimeout:          10 * time.Second,
+	healthcheckSuccessThreshold: 3,
+	healthcheckFailureThreshold: 3,
+	apiListenAddr:               ":5678",
+	apiShutdownGraceDelay:       15 * time.Second,
 }
 
 var goodConfigWithProxy = cliConfig{
@@ -76,6 +80,10 @@ var goodConfigWithProxy = cliConfig{
 	notifyTimeout:                 time.Second,
 	readinessPollPeriod:           10 * time.Second,
 	readinessTimeout:              time.Second,
+	healthcheckPeriod:             10 * time.Second,
+	healthcheckTimeout:            10 * time.Second,
+	healthcheckSuccessThreshold:   3,
+	healthcheckFailureThreshold:   3,
 	apiListenAddr:                 ":5678",
 	apiShutdownGraceDelay:         15 * time.Second,
 	apiProxyEnabled:               true,
@@ -174,6 +182,38 @@ func TestCliConfig_ValidateRuntimeConfig(t *testing.T) {
 				c.notifyTimeout = -10 * time.Second
 			},
 			wantErr: errors.New("invalid notify-timeout, should be >= 1"),
+		},
+		{
+			desc:       "invalid healthcheck period",
+			baseConfig: goodConfig,
+			patchConfig: func(c *cliConfig) {
+				c.healthcheckPeriod = -10 * time.Second
+			},
+			wantErr: errors.New("invalid healthcheck-period, should be >= 1"),
+		},
+		{
+			desc:       "invalid healthcheck timeout",
+			baseConfig: goodConfig,
+			patchConfig: func(c *cliConfig) {
+				c.healthcheckTimeout = -10 * time.Second
+			},
+			wantErr: errors.New("invalid healthcheck-timeout, should be >= 1"),
+		},
+		{
+			desc:       "invalid healthcheck success threshold",
+			baseConfig: goodConfig,
+			patchConfig: func(c *cliConfig) {
+				c.healthcheckSuccessThreshold = 0
+			},
+			wantErr: errors.New("invalid healthcheck-success-threshold, should be >= 1"),
+		},
+		{
+			desc:       "invalid healthcheck failure threshold",
+			baseConfig: goodConfig,
+			patchConfig: func(c *cliConfig) {
+				c.healthcheckFailureThreshold = 0
+			},
+			wantErr: errors.New("invalid healthcheck-failure-threshold, should be >= 1"),
 		},
 		{
 			desc:       "missing api-listen-address",

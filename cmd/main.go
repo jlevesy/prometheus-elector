@@ -18,6 +18,7 @@ import (
 	"github.com/jlevesy/prometheus-elector/api"
 	"github.com/jlevesy/prometheus-elector/config"
 	"github.com/jlevesy/prometheus-elector/election"
+	"github.com/jlevesy/prometheus-elector/health"
 	"github.com/jlevesy/prometheus-elector/notifier"
 	"github.com/jlevesy/prometheus-elector/readiness"
 	"github.com/jlevesy/prometheus-elector/watcher"
@@ -29,6 +30,9 @@ func main() {
 	var (
 		cfg         = newCLIConfig()
 		ctx, cancel = signal.NotifyContext(context.Background(), os.Interrupt)
+
+		promReady   = make(chan struct{})
+		grp, grpCtx = errgroup.WithContext(ctx)
 	)
 
 	defer cancel()
@@ -113,8 +117,6 @@ func main() {
 			OnStoppedLeading: func() {
 				klog.Info("Stopped leading, applying follower configuration.")
 
-				ctx := context.Background()
-
 				if err := reconciller.Reconcile(ctx); err != nil {
 					klog.ErrorS(err, "Failed to reconcile configurations")
 					return
@@ -177,14 +179,69 @@ func main() {
 		)
 	}
 
-	grp, grpCtx := errgroup.WithContext(ctx)
+	var healthChecker health.Checker = health.NoopChecker{}
+
+	if cfg.healthcheckHTTPURL != "" {
+		healthChecker = health.NewHTTPChecker(
+			health.HTTPCheckConfig{
+				URL:              cfg.healthcheckHTTPURL,
+				Period:           cfg.healthcheckPeriod,
+				Timeout:          cfg.healthcheckTimeout,
+				SuccessThreshold: cfg.healthcheckSuccessThreshold,
+				FailureThreshold: cfg.healthcheckFailureThreshold,
+			},
+			health.CallbacksFuncs{
+				OnHealthyFunc: func() error {
+					klog.Info("Prometheus is healthy, joining the election")
+					err := elector.Start(grpCtx)
+					if errors.Is(err, election.ErrAlreadyRunning) {
+						klog.Info("Already joined the election, ignoring.")
+						return nil
+					}
+
+					return err
+				},
+				OnUnHealthyFunc: func() error {
+					klog.Info("Prometheus is unhealthy, leaving the election")
+					err := elector.Stop(grpCtx)
+					if errors.Is(err, election.ErrNotRunning) {
+						klog.Info("Already left the election, ignoring.")
+						return nil
+					}
+
+					return err
+				},
+			},
+		)
+
+	}
 
 	grp.Go(func() error {
 		if err := readinessWaiter.Wait(grpCtx); err != nil {
 			return err
 		}
 
-		return nil
+		// Signal whoever is waiting that prometheus is ready.
+		close(promReady)
+
+		// Join election as soon as we start.
+		err := elector.Start(grpCtx)
+		if errors.Is(err, election.ErrAlreadyRunning) {
+			return nil
+		}
+
+		return err
+	})
+
+	grp.Go(func() error {
+		// Wait for the app to be ready before starting the healthcheck.
+		select {
+		case <-grpCtx.Done():
+			return nil
+		case <-promReady:
+		}
+
+		return healthChecker.Check(grpCtx)
 	})
 
 	grp.Go(func() error { return watcher.Watch(grpCtx) })
