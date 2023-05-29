@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/klog/v2"
 
 	"github.com/jlevesy/prometheus-elector/api"
@@ -82,25 +85,63 @@ func main() {
 		klog.Fatal("Can't build the k8s client: ", err)
 	}
 
-	elector, err := election.Setup(
+	elector, err := election.New(
 		election.Config{
-			LeaseName:       cfg.leaseName,
-			LeaseNamespace:  cfg.leaseNamespace,
-			ReleaseOnCancel: true,
-			LeaseDuration:   cfg.leaseDuration,
-			RenewDeadline:   cfg.leaseRenewDeadline,
-			RetryPeriod:     cfg.leaseRetryPeriod,
-			MemberID:        cfg.memberID,
+			LeaseName:      cfg.leaseName,
+			LeaseNamespace: cfg.leaseNamespace,
+			LeaseDuration:  cfg.leaseDuration,
+			RenewDeadline:  cfg.leaseRenewDeadline,
+			RetryPeriod:    cfg.leaseRetryPeriod,
+			MemberID:       cfg.memberID,
 		},
 		k8sClient,
-		reconciller,
-		notifier,
+		leaderelection.LeaderCallbacks{
+			OnStartedLeading: func(ctx context.Context) {
+				klog.Info("Leading, applying leader configuration.")
+
+				if err := reconciller.Reconcile(ctx); err != nil {
+					klog.ErrorS(err, "Failed to reconcile configurations")
+					return
+				}
+
+				if err := notifier.Notify(ctx); err != nil {
+					klog.ErrorS(err, "Failed to notify prometheus")
+					return
+				}
+			},
+			OnStoppedLeading: func() {
+				klog.Info("Stopped leading, applying follower configuration.")
+
+				ctx := context.Background()
+
+				if err := reconciller.Reconcile(ctx); err != nil {
+					klog.ErrorS(err, "Failed to reconcile configurations")
+					return
+				}
+
+				if err := notifier.Notify(ctx); err != nil {
+					klog.ErrorS(err, "Failed to notify prometheus")
+					return
+				}
+			},
+		},
 		metricsRegistry,
 	)
-
 	if err != nil {
 		klog.Fatal("Can't setup election", err)
 	}
+
+	// Always stop the election.
+	defer func() {
+		stopCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		if err := elector.Stop(stopCtx); err != nil && errors.Is(err, election.ErrNotRunning) {
+			klog.ErrorS(err, "unable to stop the elector")
+		}
+	}()
+
+	reconciller.SetLeaderChecker(elector.Status())
 
 	watcher, err := watcher.New(filepath.Dir(cfg.configPath), reconciller, notifier)
 	if err != nil {
@@ -117,7 +158,7 @@ func main() {
 			PrometheusRemotePort:  cfg.apiProxyPrometheusRemotePort,
 			PrometheusServiceName: cfg.apiProxyPrometheusServiceName,
 		},
-		elector,
+		elector.Status(),
 		metricsRegistry,
 	)
 
@@ -138,7 +179,6 @@ func main() {
 			return err
 		}
 
-		elector.Run(grpCtx)
 		return nil
 	})
 

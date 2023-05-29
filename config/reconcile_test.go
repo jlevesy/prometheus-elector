@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/jlevesy/prometheus-elector/config"
+	"github.com/jlevesy/prometheus-elector/election"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +18,7 @@ const fileName = "prometheus.yaml"
 func TestReconciler(t *testing.T) {
 	for _, testCase := range []struct {
 		desc           string
-		leaderChecker  config.LeaderChecker
+		leaderChecker  election.LeaderChecker
 		inputPath      string
 		wantError      error
 		wantResultPath string
