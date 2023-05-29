@@ -11,13 +11,15 @@ import (
 type httpWaiter struct {
 	url        string
 	pollPeriod time.Duration
+	timeout    time.Duration
 
 	httpClient *http.Client
 }
 
-func NewHTTP(url string, pollPeriod time.Duration) Waiter {
+func NewHTTP(url string, pollPeriod, timeout time.Duration) Waiter {
 	return &httpWaiter{
 		url:        url,
+		timeout:    timeout,
 		pollPeriod: pollPeriod,
 		httpClient: http.DefaultClient,
 	}
@@ -48,6 +50,9 @@ func (w *httpWaiter) Wait(ctx context.Context) error {
 }
 
 func (w *httpWaiter) checkReadiness(ctx context.Context) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, w.timeout)
+	defer cancel()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, w.url, http.NoBody)
 	if err != nil {
 		return false, err
