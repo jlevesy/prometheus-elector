@@ -36,10 +36,12 @@ type cliConfig struct {
 	notifyHTTPMethod       string
 	notifyRetryMaxAttempts int
 	notifyRetryDelay       time.Duration
+	notifyTimeout          time.Duration
 
 	// How to wait for prometheus to be ready.
 	readinessHTTPURL    string
 	readinessPollPeriod time.Duration
+	readinessTimeout    time.Duration
 
 	// API setup
 	apiListenAddr                 string
@@ -107,8 +109,16 @@ func (c *cliConfig) validateRuntimeConfig() error {
 		return errors.New("invalid notify-retry-delay, should be >= 1")
 	}
 
+	if c.notifyTimeout < 1 {
+		return errors.New("invalid notify-timeout, should be >= 1")
+	}
+
 	if c.readinessPollPeriod < 1 {
 		return errors.New("invalid readiness-poll-period, should be >= 1")
+	}
+
+	if c.readinessTimeout < 1 {
+		return errors.New("invalid readiness-timeout, should be >= 1")
 	}
 
 	if c.apiListenAddr == "" {
@@ -147,10 +157,12 @@ func (c *cliConfig) setupFlags() {
 	flag.StringVar(&c.outputPath, "output", "", "Path to write the active prometheus configuration")
 	flag.StringVar(&c.readinessHTTPURL, "readiness-http-url", "", "URL to Prometheus ready endpoint")
 	flag.DurationVar(&c.readinessPollPeriod, "readiness-poll-period", 5*time.Second, "Poll period prometheus readiness check")
+	flag.DurationVar(&c.readinessTimeout, "readiness-timeout", 2*time.Second, "HTTP timeout for readiness calls.")
 	flag.StringVar(&c.notifyHTTPURL, "notify-http-url", "", "URL to the reload configuration endpoint")
 	flag.StringVar(&c.notifyHTTPMethod, "notify-http-method", http.MethodPost, "HTTP method to use when sending the reload config request.")
 	flag.IntVar(&c.notifyRetryMaxAttempts, "notify-retry-max-attempts", 5, "How many times to retry notifying prometheus on failure.")
 	flag.DurationVar(&c.notifyRetryDelay, "notify-retry-delay", 10*time.Second, "How much time to wait between two notify retries.")
+	flag.DurationVar(&c.notifyTimeout, "notify-timeout", 2*time.Second, "HTTP timeout for notify retries.")
 	flag.BoolVar(&c.init, "init", false, "Only init the prometheus config file")
 	flag.StringVar(&c.apiListenAddr, "api-listen-address", ":9095", "HTTP listen address to use for the API.")
 	flag.DurationVar(&c.apiShutdownGraceDelay, "api-shutdown-grace-delay", 15*time.Second, "Grace delay to apply when shutting down the API server")

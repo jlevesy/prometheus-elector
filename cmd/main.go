@@ -69,6 +69,7 @@ func main() {
 			notifier.NewHTTP(
 				cfg.notifyHTTPURL,
 				cfg.notifyHTTPMethod,
+				cfg.notifyTimeout,
 			),
 		),
 		cfg.notifyRetryMaxAttempts,
@@ -169,7 +170,11 @@ func main() {
 	var readinessWaiter readiness.Waiter = readiness.NoopWaiter{}
 
 	if cfg.readinessHTTPURL != "" {
-		readinessWaiter = readiness.NewHTTP(cfg.readinessHTTPURL, cfg.readinessPollPeriod)
+		readinessWaiter = readiness.NewHTTP(
+			cfg.readinessHTTPURL,
+			cfg.readinessPollPeriod,
+			cfg.readinessTimeout,
+		)
 	}
 
 	grp, grpCtx := errgroup.WithContext(ctx)
