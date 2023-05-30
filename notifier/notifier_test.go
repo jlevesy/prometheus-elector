@@ -35,6 +35,7 @@ func TestHTTPNotifierWithRetries(t *testing.T) {
 				notifier.NewHTTP(
 					srv.URL,
 					http.MethodPost,
+					time.Second,
 				),
 			),
 			10,
@@ -78,6 +79,7 @@ func TestHTTPNotifierExhaustRetries(t *testing.T) {
 			notifier.NewHTTP(
 				srv.URL,
 				http.MethodPost,
+				time.Second,
 			),
 			10,
 			0*time.Second,

@@ -28,7 +28,7 @@ func TestHTTPWaiter(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	waiter := readiness.NewHTTP(srv.URL+"/foo", 200*time.Millisecond)
+	waiter := readiness.NewHTTP(srv.URL+"/foo", 200*time.Millisecond, time.Second)
 
 	err := waiter.Wait(context.Background())
 	require.NoError(t, err)
