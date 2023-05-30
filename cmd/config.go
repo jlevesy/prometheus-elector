@@ -176,8 +176,8 @@ func (c *cliConfig) validateRuntimeConfig() error {
 func (c *cliConfig) setupFlags() {
 	flag.BoolVar(&c.init, "init", false, "Only init the prometheus config file")
 
-	flag.StringVar(&c.leaseName, "lease-name", "", "Name of lease lock")
-	flag.StringVar(&c.leaseNamespace, "lease-namespace", "", "Name of lease lock namespace")
+	flag.StringVar(&c.leaseName, "lease-name", "", "Name of lease resource")
+	flag.StringVar(&c.leaseNamespace, "lease-namespace", "", "Name of lease resource namespace")
 	flag.DurationVar(&c.leaseDuration, "lease-duration", 15*time.Second, "Duration of a lease, client wait the full duration of a lease before trying to take it over")
 	flag.DurationVar(&c.leaseRenewDeadline, "lease-renew-deadline", 10*time.Second, "Maximum duration spent trying to renew the lease")
 	flag.DurationVar(&c.leaseRetryPeriod, "lease-retry-period", 2*time.Second, "Delay between two attempts of taking/renewing the lease")
@@ -185,25 +185,25 @@ func (c *cliConfig) setupFlags() {
 	flag.StringVar(&c.kubeConfigPath, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 
 	flag.StringVar(&c.configPath, "config", "", "Path of the prometheus-elector configuration")
-	flag.StringVar(&c.outputPath, "output", "", "Path to write the active prometheus configuration")
+	flag.StringVar(&c.outputPath, "output", "", "Path to write the Prometheus configuration")
 
 	flag.StringVar(&c.readinessHTTPURL, "readiness-http-url", "", "URL to the Prometheus ready endpoint")
 	flag.DurationVar(&c.readinessPollPeriod, "readiness-poll-period", 5*time.Second, "Poll period prometheus readiness check")
-	flag.DurationVar(&c.readinessTimeout, "readiness-timeout", 2*time.Second, "HTTP timeout for readiness calls.")
+	flag.DurationVar(&c.readinessTimeout, "readiness-timeout", 2*time.Second, "HTTP timeout for readiness calls")
 
 	flag.StringVar(&c.healthcheckHTTPURL, "healthcheck-http-url", "", "URL to the Prometheus health endpoint")
-	flag.DurationVar(&c.healthcheckPeriod, "healthcheck-period", 5*time.Second, "Period for the healthcheck")
-	flag.DurationVar(&c.healthcheckTimeout, "healthcheck-timeout", 2*time.Second, "HTTP timeout for readiness calls.")
-	flag.IntVar(&c.healthcheckSuccessThreshold, "healthcheck-success-threshold", 3, "Amout of consecutives success to consider prometheus healthy")
-	flag.IntVar(&c.healthcheckFailureThreshold, "healthcheck-failure-threshold", 3, "Amout of consecutives failures to consider prometheus unhealthy")
+	flag.DurationVar(&c.healthcheckPeriod, "healthcheck-period", 5*time.Second, "Healthcheck period")
+	flag.DurationVar(&c.healthcheckTimeout, "healthcheck-timeout", 2*time.Second, "HTTP timeout for healthchecks")
+	flag.IntVar(&c.healthcheckSuccessThreshold, "healthcheck-success-threshold", 3, "Amount of consecutives success to consider Prometheus healthy")
+	flag.IntVar(&c.healthcheckFailureThreshold, "healthcheck-failure-threshold", 3, "Amount of consecutives failures to consider Prometheus unhealthy")
 
 	flag.StringVar(&c.notifyHTTPURL, "notify-http-url", "", "URL to the reload configuration endpoint")
-	flag.StringVar(&c.notifyHTTPMethod, "notify-http-method", http.MethodPost, "HTTP method to use when sending the reload config request.")
-	flag.IntVar(&c.notifyRetryMaxAttempts, "notify-retry-max-attempts", 5, "How many times to retry notifying prometheus on failure.")
-	flag.DurationVar(&c.notifyRetryDelay, "notify-retry-delay", 10*time.Second, "How much time to wait between two notify retries.")
+	flag.StringVar(&c.notifyHTTPMethod, "notify-http-method", http.MethodPost, "HTTP method to use when sending the reload config request")
+	flag.IntVar(&c.notifyRetryMaxAttempts, "notify-retry-max-attempts", 5, "How many retries for configuration update")
+	flag.DurationVar(&c.notifyRetryDelay, "notify-retry-delay", 10*time.Second, "Delay between two notify retries.")
 	flag.DurationVar(&c.notifyTimeout, "notify-timeout", 2*time.Second, "HTTP timeout for notify retries.")
 
-	flag.StringVar(&c.apiListenAddr, "api-listen-address", ":9095", "HTTP listen address to use for the API.")
+	flag.StringVar(&c.apiListenAddr, "api-listen-address", ":9095", "HTTP listen address for the API.")
 	flag.DurationVar(&c.apiShutdownGraceDelay, "api-shutdown-grace-delay", 15*time.Second, "Grace delay to apply when shutting down the API server")
 	flag.BoolVar(&c.apiProxyEnabled, "api-proxy-enabled", false, "Turn on leader proxy on the API")
 	flag.UintVar(&c.apiProxyPrometheusLocalPort, "api-proxy-prometheus-local-port", 9090, "Listening port of the local prometheus instance")
