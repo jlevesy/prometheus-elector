@@ -6,7 +6,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/imdario/mergo v0.3.15
 	github.com/prometheus/client_golang v1.15.1
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	golang.org/x/net v0.10.0
 	golang.org/x/sync v0.2.0
 	gopkg.in/yaml.v2 v2.4.0
