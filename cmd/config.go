@@ -178,8 +178,8 @@ func (c *cliConfig) setupFlags() {
 
 	flag.StringVar(&c.leaseName, "lease-name", "", "Name of lease resource")
 	flag.StringVar(&c.leaseNamespace, "lease-namespace", "", "Name of lease resource namespace")
-	flag.DurationVar(&c.leaseDuration, "lease-duration", 15*time.Second, "Duration of a lease, client wait the full duration of a lease before trying to take it over")
-	flag.DurationVar(&c.leaseRenewDeadline, "lease-renew-deadline", 10*time.Second, "Maximum duration spent trying to renew the lease")
+	flag.DurationVar(&c.leaseDuration, "lease-duration", 10*time.Second, "Duration of a lease, client wait the full duration of a lease before trying to take it over")
+	flag.DurationVar(&c.leaseRenewDeadline, "lease-renew-deadline", 8*time.Second, "Maximum duration spent trying to renew the lease")
 	flag.DurationVar(&c.leaseRetryPeriod, "lease-retry-period", 2*time.Second, "Delay between two attempts of taking/renewing the lease")
 
 	flag.StringVar(&c.kubeConfigPath, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
