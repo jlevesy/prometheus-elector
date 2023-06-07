@@ -13,7 +13,13 @@ unit_test:
 ### Dev
 
 .PHONY: run
-run: check_dev_dependencies create_cluster install_agent_example
+run: run_agent_example
+
+.PHONY: run_agent_example
+run_agent_example: check_dev_dependencies create_cluster install_agent_example
+
+.PHONY: run_proxy_example
+run_proxy_example: check_dev_dependencies create_cluster install_proxy_example
 
 .PHONY: create_cluster
 create_cluster: ## run a local k3d cluster
@@ -36,8 +42,8 @@ install_agent_example: install_storage
 		-f ./example/k8s/agent-values.yaml \
 		prometheus-elector-dev ./helm | KO_DOCKER_REPO=prometheus-elector-registry.localhost:5000 ko apply -B -t dev -f -
 
-.PHONY: install_ha_example
-install_ha_example:
+.PHONY: install_proxy_example
+install_proxy_example:
 	helm template \
 		--set elector.image.devRef=ko://github.com/jlevesy/prometheus-elector/cmd \
 		--set prometheus.image.repository=jlevesy/prometheus \

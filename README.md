@@ -31,7 +31,9 @@ You can find the necessary configuration for this use case in the [example direc
 
 #### Running an Example of this Setup
 
-You need [ko](https://github.com/ko-build/ko), `kubectl` and [k3d](https://github.com/k3d-io/k3d) and docker installed, from there run `make create_cluster install_agent_example`.
+You need [ko](https://github.com/ko-build/ko), `kubectl`, [k3d](https://github.com/k3d-io/k3d), `docker` and `helm` installed. You also need to make sure that `prometheus-elector-registry.localhost` resolves to `127.0.0.1` by adding an entry in your `/etc/hosts`.
+
+You can then run `make run_agent_example`.
 
 This command:
 
@@ -51,7 +53,10 @@ You can find the necessary configuration for this use case in the [example direc
 
 #### Running an Example of this setup
 
-You need [ko](https://github.com/ko-build/ko), `kubectl` and [k3d](https://github.com/k3d-io/k3d) and docker installed, from there run `make create_cluster install_ha_example`.
+
+You need [ko](https://github.com/ko-build/ko), `kubectl`, [k3d](https://github.com/k3d-io/k3d), `docker` and `helm` installed. You also need to make sure that `prometheus-elector-registry.localhost` resolves to `127.0.0.1` by adding an entry in your `/etc/hosts`.
+
+Then you can run `make run_proxy_example`.
 
 This command:
 
