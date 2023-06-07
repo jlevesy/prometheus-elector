@@ -13,7 +13,7 @@ unit_test:
 ### Dev
 
 .PHONY: run
-run: create_cluster install_agent_example
+run: check_dev_dependencies create_cluster install_agent_example
 
 .PHONY: create_cluster
 create_cluster: ## run a local k3d cluster
@@ -62,6 +62,14 @@ run_agent_local: dist
 
 dist:
 	mkdir -p dist
+
+.PHONY: check_dev_dependencies
+check_dev_dependencies: ## Checks that all the necesary depencencies for the dev env are present
+	@helm version >/dev/null 2>&1 || (echo "ERROR: helm is required."; exit 1)
+	@k3d version >/dev/null 2>&1 || (echo "ERROR: k3d is required."; exit 1)
+	@kubectl version --client >/dev/null 2>&1 || (echo "ERROR: kubectl is required."; exit 1)
+	@ko version >/dev/null 2>&1 || (echo "ERROR: google/ko is required."; exit 1)
+	@grep -Fq "prometheus-elector-registry.localhost" /etc/hosts || (echo "ERROR: please add the following line `prometheus-elector-registry.localhost 127.0.0.1` to your /etc/hosts file"; exit 1)
 
 ### CI
 
