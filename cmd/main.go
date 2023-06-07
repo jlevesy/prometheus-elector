@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -27,36 +28,42 @@ import (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	var (
 		cfg         = newCLIConfig()
-		ctx, cancel = signal.NotifyContext(context.Background(), os.Interrupt)
+		ctx, cancel = signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 
 		promReady   = make(chan struct{})
 		grp, grpCtx = errgroup.WithContext(ctx)
 	)
-
 	defer cancel()
 	cfg.setupFlags()
 
 	flag.Parse()
 
 	if err := cfg.validateInitConfig(); err != nil {
-		klog.Fatal("Invalid init config: ", err)
+		klog.ErrorS(err, "Invalid init config")
+		return 1
 	}
 
 	reconciller := config.NewReconciller(cfg.configPath, cfg.outputPath)
 
 	if err := reconciller.Reconcile(ctx); err != nil {
-		klog.Fatal("Can't perform an initial sync: ", err)
+		klog.ErrorS(err, "Can't perform an initial sync")
+		return 1
 	}
 
 	if cfg.init {
 		klog.Info("Running in init mode, exiting")
-		return
+		return 0
 	}
 
 	if err := cfg.validateRuntimeConfig(); err != nil {
-		klog.Fatal("Invalid election config: ", err)
+		klog.ErrorS(err, "Invalid election config")
+		return 1
 	}
 
 	metricsRegistry := prometheus.NewRegistry()
@@ -82,12 +89,14 @@ func main() {
 
 	k8sConfig, err := clientcmd.BuildConfigFromFlags("", cfg.kubeConfigPath)
 	if err != nil {
-		klog.Fatal("Unable to build kube client configuration: ", err)
+		klog.ErrorS(err, "Unable to build kube client configuration")
+		return 1
 	}
 
 	k8sClient, err := kubernetes.NewForConfig(k8sConfig)
 	if err != nil {
-		klog.Fatal("Can't build the k8s client: ", err)
+		klog.ErrorS(err, "Can't build the Kubernetes client")
+		return 1
 	}
 
 	elector, err := election.New(
@@ -131,7 +140,8 @@ func main() {
 		metricsRegistry,
 	)
 	if err != nil {
-		klog.Fatal("Can't setup election", err)
+		klog.ErrorS(err, "Can't setup the election")
+		return 1
 	}
 
 	// Always leave the election.
@@ -152,7 +162,8 @@ func main() {
 
 	watcher, err := watcher.New(filepath.Dir(cfg.configPath), reconciller, notifier)
 	if err != nil {
-		klog.Fatal("Can't create the watcher: ", err)
+		klog.ErrorS(err, "Can't create the watcher")
+		return 1
 	}
 	defer watcher.Close()
 
@@ -170,7 +181,8 @@ func main() {
 	)
 
 	if err != nil {
-		klog.Fatal("Can't set up API server", err)
+		klog.ErrorS(err, "Can't set up the API server")
+		return 1
 	}
 
 	var readinessWaiter readiness.Waiter = readiness.NoopWaiter{}
@@ -252,8 +264,10 @@ func main() {
 	grp.Go(func() error { return apiServer.Serve(grpCtx) })
 
 	if err := grp.Wait(); err != nil {
-		klog.Fatal("Error while running prometheus-elector, reason: ", err)
+		klog.ErrorS(err, "prometheus-elector has reported an error while running")
+		return 1
 	}
 
-	klog.Info("prometheus-elector is stopping")
+	klog.Info("prometheus-elector is gracefully stopping")
+	return 0
 }
