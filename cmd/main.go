@@ -134,14 +134,18 @@ func main() {
 		klog.Fatal("Can't setup election", err)
 	}
 
-	// Always stop the election.
+	// Always leave the election.
 	defer func() {
 		stopCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 
+		klog.Info("Graceful shutdown, leaving the election")
+
 		if err := elector.Stop(stopCtx); err != nil && errors.Is(err, election.ErrNotRunning) {
-			klog.ErrorS(err, "unable to stop the elector")
+			klog.ErrorS(err, "Unable to leave the election")
 		}
+
+		klog.Info("Graceful shutdown, left the election")
 	}()
 
 	reconciller.SetLeaderChecker(elector.Status())
@@ -251,5 +255,5 @@ func main() {
 		klog.Fatal("Error while running prometheus-elector, reason: ", err)
 	}
 
-	klog.Info("prometheus-elector exited successfully")
+	klog.Info("prometheus-elector is stopping")
 }
