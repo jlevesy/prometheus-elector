@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -27,6 +28,10 @@ func (r *retryNotifier) Notify(ctx context.Context) error {
 
 	for j := r.maxAttempts; j > 0; j-- {
 		if err = r.next.Notify(ctx); err == nil {
+			return nil
+		}
+
+		if errors.Is(err, context.Canceled) {
 			return nil
 		}
 

@@ -65,7 +65,7 @@ func (w *httpWaiter) checkReadiness(ctx context.Context) (bool, error) {
 	}
 
 	if rsp.StatusCode != http.StatusOK {
-		klog.Error("Prometheus isn't ready yet", "status", rsp.StatusCode)
+		klog.InfoS("Prometheus isn't ready yet", "status", rsp.StatusCode)
 		return false, nil
 	}
 

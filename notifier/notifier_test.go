@@ -93,3 +93,32 @@ func TestHTTPNotifierExhaustRetries(t *testing.T) {
 
 	assert.Equal(t, 10, totalReceived)
 }
+
+func TestHTTPNotifierNoRetryOnContextCanceled(t *testing.T) {
+	var (
+		totalReceived int
+		ctx, cancel   = context.WithCancel(context.Background())
+		srv           = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			require.Equal(t, r.Method, http.MethodPost)
+			totalReceived++
+			rw.WriteHeader(http.StatusInternalServerError)
+		}))
+		notifier = notifier.WithRetry(
+			notifier.NewHTTP(
+				srv.URL,
+				http.MethodPost,
+				time.Second,
+			),
+			10,
+			0*time.Second,
+		)
+	)
+
+	defer srv.Close()
+
+	cancel()
+	err := notifier.Notify(ctx)
+	require.Nil(t, err)
+
+	assert.Equal(t, 0, totalReceived)
+}
