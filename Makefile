@@ -1,5 +1,6 @@
 K3S_VERSION = v1.25.0-k3s1
 RELEASE_TAG ?= dev
+TIMEOUT ?= 5s
 
 ### Tests
 
@@ -8,7 +9,7 @@ test: unit_test
 
 .PHONY: unit_test
 unit_test:
-	go test -v -cover -race -timeout=5s ./...
+	go test -v -cover -race -timeout=$(TIMEOUT) ./...
 
 ### Dev
 
