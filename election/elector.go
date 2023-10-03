@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -103,10 +104,26 @@ func (e *Elector) Start(ctx context.Context) error {
 	e.runCtx, e.cancelRunCtx = context.WithCancel(ctx)
 	e.electorDone = make(chan struct{})
 
-	go func() {
-		e.elector.Run(e.runCtx)
-		close(e.electorDone)
-	}()
+	go func(runCtx context.Context) {
+		for {
+			e.elector.Run(runCtx)
+
+			// If the elector exits, let's confirm that our runCtx is Done.
+			// It it is, it means that we we're in the process of
+			// stopping the elector so let's return.
+			// However, if it is not this means that elector.Run exited
+			// while it is still supposed to participate.
+			// This can happen when the elector loses the lease without properly releasing it before.
+			// In that case, we reeattempt to join the election by looping back and calling  elector.Run again.
+			select {
+			case <-runCtx.Done():
+				close(e.electorDone)
+				return
+			default:
+				klog.Info("elector exited while still being supposed to participate, re-joining the election...")
+			}
+		}
+	}(e.runCtx)
 
 	return nil
 }

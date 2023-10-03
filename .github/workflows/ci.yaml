@@ -19,7 +19,8 @@ jobs:
           check-latest: true
           cache: true
       - name: Run Tests
-        run: make test
+        run: |
+          TIMEOUT=1m make test
 
   lint:
     name: Lint Code
