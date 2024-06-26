@@ -22,6 +22,9 @@ type cliConfig struct {
 	configPath string
 	outputPath string
 
+	// Leader config file path
+	configLeaderPath string
+
 	// Runtime config.
 	// Election setup.
 	memberID           string
@@ -185,6 +188,7 @@ func (c *cliConfig) setupFlags() {
 	flag.StringVar(&c.kubeConfigPath, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 
 	flag.StringVar(&c.configPath, "config", "", "Path of the prometheus-elector configuration")
+	flag.StringVar(&c.configLeaderPath, "leader-config", "", "Path of the prometheus-leader configuration")
 	flag.StringVar(&c.outputPath, "output", "", "Path to write the Prometheus configuration")
 
 	flag.StringVar(&c.readinessHTTPURL, "readiness-http-url", "", "URL to the Prometheus ready endpoint")
