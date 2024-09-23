@@ -2,6 +2,7 @@ package election_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -9,22 +10,23 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	kubetesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/leaderelection"
 )
 
 func TestElector(t *testing.T) {
 	var (
 		ctx        = context.Background()
-		kubeClient = kubefake.NewSimpleClientset()
+		kubeClient = kubefake.NewClientset()
 		config     = election.Config{
 			LeaseName:      "test",
 			LeaseNamespace: "test",
 			MemberID:       "foo",
 			LeaseDuration:  time.Second,
 			RenewDeadline:  500 * time.Millisecond,
-			RetryPeriod:    200 * time.Millisecond,
-		}
+			RetryPeriod:    200 * time.Millisecond}
 		startedLeading = make(chan struct{}, 1)
 		stoppedLeading = make(chan struct{}, 1)
 	)
@@ -74,7 +76,7 @@ func TestElector(t *testing.T) {
 func TestElector_ContinuesParticipatingIfItLoosesTheLease(t *testing.T) {
 	var (
 		ctx        = context.Background()
-		kubeClient = kubefake.NewSimpleClientset()
+		kubeClient = kubefake.NewClientset()
 		config     = election.Config{
 			LeaseName:      "test",
 			LeaseNamespace: "test",
@@ -87,6 +89,18 @@ func TestElector_ContinuesParticipatingIfItLoosesTheLease(t *testing.T) {
 		stoppedLeading = make(chan struct{}, 1)
 		leasesClient   = kubeClient.CoordinationV1().Leases(config.LeaseNamespace)
 	)
+
+	var callCount int
+	kubeClient.PrependReactor("update", "leases", func(action kubetesting.Action) (bool, runtime.Object, error) {
+		// Fail the third update call to bypass optimistic renew and force giving up the ownership.
+		if callCount == 2 {
+			callCount++
+			return true, nil, errors.New("failed")
+		}
+
+		callCount++
+		return false, nil, nil
+	})
 
 	elector, err := election.New(
 		config,
