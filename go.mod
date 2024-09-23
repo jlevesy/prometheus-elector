@@ -1,6 +1,6 @@
 module github.com/jlevesy/prometheus-elector
 
-go 1.21
+go 1.23
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0
