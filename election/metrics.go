@@ -6,9 +6,9 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 )
 
-type metricsProvider func() leaderelection.SwitchMetric
+type metricsProvider func() leaderelection.LeaderMetric
 
-func (mp metricsProvider) NewLeaderMetric() leaderelection.SwitchMetric {
+func (mp metricsProvider) NewLeaderMetric() leaderelection.LeaderMetric {
 	return mp()
 }
 
@@ -46,3 +46,5 @@ func (m *leaderMetrics) Off(name string) {
 	m.isLeader.WithLabelValues(name).Set(0.0)
 	m.lastTranstitionTime.SetToCurrentTime()
 }
+
+func (m *leaderMetrics) SlowpathExercised(name string) {}
