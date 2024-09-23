@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: './go.mod'
           check-latest: true
@@ -29,7 +29,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: './go.mod'
           check-latest: true
@@ -37,7 +37,7 @@ jobs:
       - name: Run Linter
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.52.2
+          version: v1.61
           args: --timeout 5m
 
   release:
@@ -51,12 +51,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: './go.mod'
           check-latest: true
       - name: Install Ko
-        uses: imjasonh/setup-ko@v0.6
+        uses: imjasonh/setup-ko@v0.7
       - name: Release a New Version
         run: make ci_release
         env:

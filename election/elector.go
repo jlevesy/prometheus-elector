@@ -51,7 +51,7 @@ type Elector struct {
 }
 
 func New(cfg Config, k8sClient kubernetes.Interface, callbacks leaderelection.LeaderCallbacks, reg prometheus.Registerer) (*Elector, error) {
-	leaderelection.SetProvider(metricsProvider(func() leaderelection.SwitchMetric {
+	leaderelection.SetProvider(metricsProvider(func() leaderelection.LeaderMetric {
 		return newLeaderMetrics(reg)
 	}))
 
