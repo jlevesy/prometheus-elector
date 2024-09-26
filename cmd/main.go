@@ -6,7 +6,6 @@ import (
 	"flag"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -49,7 +48,7 @@ func run() int {
 		return 1
 	}
 
-	reconciller := config.NewReconciller(cfg.configPath, cfg.outputPath)
+	reconciller := config.NewReconciller(cfg.configPath, cfg.outputPath, cfg.configLeaderPath)
 
 	if err := reconciller.Reconcile(ctx); err != nil {
 		klog.ErrorS(err, "Can't perform an initial sync")
@@ -160,7 +159,8 @@ func run() int {
 
 	reconciller.SetLeaderChecker(elector.Status())
 
-	watcher, err := watcher.New(filepath.Dir(cfg.configPath), reconciller, notifier)
+	configPaths := []string{cfg.configPath, cfg.configLeaderPath}
+	watcher, err := watcher.New(configPaths, reconciller, notifier)
 	if err != nil {
 		klog.ErrorS(err, "Can't create the watcher")
 		return 1

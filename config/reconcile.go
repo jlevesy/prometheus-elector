@@ -9,16 +9,17 @@ import (
 )
 
 type Reconciler struct {
-	sourcePath string
-	outputPath string
-
+	sourcePath    string
+	outputPath    string
+	leaderPath    string
 	leaderChecker election.LeaderChecker
 }
 
-func NewReconciller(src, out string) *Reconciler {
+func NewReconciller(src, out, leader string) *Reconciler {
 	return &Reconciler{
 		sourcePath: src,
 		outputPath: out,
+		leaderPath: leader,
 	}
 }
 
@@ -27,7 +28,7 @@ func (r *Reconciler) SetLeaderChecker(lc election.LeaderChecker) {
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context) error {
-	cfg, err := loadConfiguration(r.sourcePath)
+	cfg, err := loadConfiguration(r.sourcePath, r.leaderPath)
 	if err != nil {
 		return err
 	}
