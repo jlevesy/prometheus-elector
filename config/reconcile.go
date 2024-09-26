@@ -5,6 +5,7 @@ import (
 
 	"github.com/imdario/mergo"
 	"github.com/jlevesy/prometheus-elector/election"
+	"k8s.io/klog/v2"
 )
 
 type Reconciler struct {
@@ -34,6 +35,7 @@ func (r *Reconciler) Reconcile(ctx context.Context) error {
 	targetCfg := cfg.Follower
 
 	if cfg.Leader != nil && r.leaderChecker != nil && r.leaderChecker.IsLeader() {
+		klog.Info("Writing leader configuration")
 		if err := mergo.Merge(
 			&targetCfg,
 			cfg.Leader,
