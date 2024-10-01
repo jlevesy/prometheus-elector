@@ -51,7 +51,7 @@ func run() int {
 
 	reconciller := config.NewReconciller(cfg.configPath, cfg.outputPath)
 
-	if err := reconciller.Reconcile(ctx); err != nil {
+	if err := reconciller.Reconcile(ctx, false); err != nil {
 		klog.ErrorS(err, "Can't perform an initial sync")
 		return 1
 	}
@@ -113,7 +113,7 @@ func run() int {
 			OnStartedLeading: func(ctx context.Context) {
 				klog.Info("Leading, applying leader configuration.")
 
-				if err := reconciller.Reconcile(ctx); err != nil {
+				if err := reconciller.Reconcile(ctx, true); err != nil {
 					klog.ErrorS(err, "Failed to reconcile configurations")
 					return
 				}
@@ -126,7 +126,7 @@ func run() int {
 			OnStoppedLeading: func() {
 				klog.Info("Stopped leading, applying follower configuration.")
 
-				if err := reconciller.Reconcile(ctx); err != nil {
+				if err := reconciller.Reconcile(ctx, false); err != nil {
 					klog.ErrorS(err, "Failed to reconcile configurations")
 					return
 				}
@@ -158,9 +158,7 @@ func run() int {
 		klog.Info("Graceful shutdown, left the election")
 	}()
 
-	reconciller.SetLeaderChecker(elector.Status())
-
-	watcher, err := watcher.New(filepath.Dir(cfg.configPath), reconciller, notifier)
+	watcher, err := watcher.New(filepath.Dir(cfg.configPath), reconciller, notifier, elector.Status())
 	if err != nil {
 		klog.ErrorS(err, "Can't create the watcher")
 		return 1

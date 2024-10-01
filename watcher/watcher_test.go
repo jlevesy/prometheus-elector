@@ -60,7 +60,7 @@ func TestFileWatcher(t *testing.T) {
 	err := simulateConfigmapWrite(dir, fileName, []byte(defaultConfig))
 	require.NoError(t, err)
 
-	watcher, err := watcher.New(dir, reconciler, notifierFunc(notifier))
+	watcher, err := watcher.New(dir, reconciler, notifierFunc(notifier), leaderCheckerFunc(func() bool { return false }))
 	require.NoError(t, err)
 
 	defer watcher.Close()
@@ -113,3 +113,7 @@ type notifierFunc func() error
 func (n notifierFunc) Notify(context.Context) error {
 	return n()
 }
+
+type leaderCheckerFunc func() bool
+
+func (l leaderCheckerFunc) IsLeader() bool { return l() }
