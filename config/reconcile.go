@@ -4,15 +4,11 @@ import (
 	"context"
 
 	"github.com/imdario/mergo"
-	"github.com/jlevesy/prometheus-elector/election"
-	"k8s.io/klog/v2"
 )
 
 type Reconciler struct {
 	sourcePath string
 	outputPath string
-
-	leaderChecker election.LeaderChecker
 }
 
 func NewReconciller(src, out string) *Reconciler {
@@ -22,11 +18,7 @@ func NewReconciller(src, out string) *Reconciler {
 	}
 }
 
-func (r *Reconciler) SetLeaderChecker(lc election.LeaderChecker) {
-	r.leaderChecker = lc
-}
-
-func (r *Reconciler) Reconcile(ctx context.Context) error {
+func (r *Reconciler) Reconcile(ctx context.Context, leader bool) error {
 	cfg, err := loadConfiguration(r.sourcePath)
 	if err != nil {
 		return err
@@ -34,8 +26,7 @@ func (r *Reconciler) Reconcile(ctx context.Context) error {
 
 	targetCfg := cfg.Follower
 
-	if cfg.Leader != nil && r.leaderChecker != nil && r.leaderChecker.IsLeader() {
-		klog.Info("Writing leader configuration")
+	if leader {
 		if err := mergo.Merge(
 			&targetCfg,
 			cfg.Leader,

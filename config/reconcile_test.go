@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/jlevesy/prometheus-elector/config"
-	"github.com/jlevesy/prometheus-elector/election"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,27 +17,21 @@ const fileName = "prometheus.yaml"
 func TestReconciler(t *testing.T) {
 	for _, testCase := range []struct {
 		desc           string
-		leaderChecker  election.LeaderChecker
+		isLeader       bool
 		inputPath      string
 		wantError      error
 		wantResultPath string
 	}{
 		{
-			desc:           "follower without leader checker",
-			inputPath:      "./testdata/config.yaml",
-			leaderChecker:  nil,
-			wantResultPath: "./testdata/follower_no_leader_result.yaml",
-		},
-		{
 			desc:           "follower",
 			inputPath:      "./testdata/config.yaml",
-			leaderChecker:  leaderCheckerFunc(func() bool { return false }),
+			isLeader:       false,
 			wantResultPath: "./testdata/follower_no_leader_result.yaml",
 		},
 		{
 			desc:           "leader",
 			inputPath:      "./testdata/config.yaml",
-			leaderChecker:  leaderCheckerFunc(func() bool { return true }),
+			isLeader:       true,
 			wantResultPath: "./testdata/leader_result.yaml",
 		},
 		{
@@ -63,9 +56,7 @@ func TestReconciler(t *testing.T) {
 				)
 			)
 
-			reconciler.SetLeaderChecker(testCase.leaderChecker)
-
-			err := reconciler.Reconcile(ctx)
+			err := reconciler.Reconcile(ctx, testCase.isLeader)
 			if testCase.wantError != nil {
 				assert.Equal(t, testCase.wantError, err)
 				return
@@ -82,7 +73,3 @@ func TestReconciler(t *testing.T) {
 		})
 	}
 }
-
-type leaderCheckerFunc func() bool
-
-func (l leaderCheckerFunc) IsLeader() bool { return l() }

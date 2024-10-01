@@ -9,16 +9,18 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/jlevesy/prometheus-elector/config"
+	"github.com/jlevesy/prometheus-elector/election"
 	"github.com/jlevesy/prometheus-elector/notifier"
 )
 
 type FileWatcher struct {
-	fsWatcher  *fsnotify.Watcher
-	reconciler *config.Reconciler
-	notifier   notifier.Notifier
+	fsWatcher     *fsnotify.Watcher
+	reconciler    *config.Reconciler
+	leaderChecker election.LeaderChecker
+	notifier      notifier.Notifier
 }
 
-func New(path string, reconciler *config.Reconciler, notifier notifier.Notifier) (*FileWatcher, error) {
+func New(path string, reconciler *config.Reconciler, notifier notifier.Notifier, leaderChecker election.LeaderChecker) (*FileWatcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create fsnotify watcher: %w", err)
@@ -31,9 +33,10 @@ func New(path string, reconciler *config.Reconciler, notifier notifier.Notifier)
 	klog.InfoS("Watching config directory", "path", path)
 
 	return &FileWatcher{
-		fsWatcher:  watcher,
-		reconciler: reconciler,
-		notifier:   notifier,
+		fsWatcher:     watcher,
+		leaderChecker: leaderChecker,
+		reconciler:    reconciler,
+		notifier:      notifier,
 	}, nil
 }
 
@@ -56,7 +59,7 @@ func (f *FileWatcher) Watch(ctx context.Context) error {
 
 			klog.Info("Configuration changed, reconciling...")
 
-			if err := f.reconciler.Reconcile(ctx); err != nil {
+			if err := f.reconciler.Reconcile(ctx, f.leaderChecker.IsLeader()); err != nil {
 				klog.ErrorS(err, "Reconciler reported an error")
 				continue
 			}
