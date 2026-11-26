@@ -1,6 +1,6 @@
 module github.com/jlevesy/prometheus-elector
 
-go 1.23
+go 1.26.0
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0
@@ -8,7 +8,7 @@ require (
 	github.com/prometheus/client_golang v1.20.4
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.29.0
-	golang.org/x/sync v0.8.0
+	golang.org/x/sync v0.25.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.31.1
 	k8s.io/client-go v0.31.1
