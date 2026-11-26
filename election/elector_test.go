@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jlevesy/prometheus-elector/election"
+	"github.com/prometheus-community/prometheus-elector/election"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

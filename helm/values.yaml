@@ -8,7 +8,7 @@ configFiles:
 
 elector:
   image:
-    repository: ghcr.io/jlevesy/prometheus-elector
+    repository: ghcr.io/prometheus-community/prometheus-elector
     pullPolicy: IfNotPresent
   readinessProbe:
     httpGet:

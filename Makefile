@@ -36,7 +36,7 @@ delete_cluster:
 .PHONY: install_agent_example
 install_agent_example: install_storage
 	helm template \
-		--set elector.image.devRef=ko://github.com/jlevesy/prometheus-elector/cmd \
+		--set elector.image.devRef=ko://github.com/prometheus-community/prometheus-elector/cmd \
 		--set prometheus.image.repository=jlevesy/prometheus \
 		--set prometheus.image.tag=allow-agent-no-remote-write \
 		--set storage.storageClass="local-path" \
@@ -46,7 +46,7 @@ install_agent_example: install_storage
 .PHONY: install_proxy_example
 install_proxy_example:
 	helm template \
-		--set elector.image.devRef=ko://github.com/jlevesy/prometheus-elector/cmd \
+		--set elector.image.devRef=ko://github.com/prometheus-community/prometheus-elector/cmd \
 		--set prometheus.image.repository=jlevesy/prometheus \
 		--set prometheus.image.tag=allow-agent-no-remote-write \
 		--set storage.storageClass="local-path" \

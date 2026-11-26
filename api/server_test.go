@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/jlevesy/prometheus-elector/api"
+	"github.com/prometheus-community/prometheus-elector/api"
 )
 
 func TestServer_ServeHTTP_ProxyNotLeaderForwardsToLeader(t *testing.T) {

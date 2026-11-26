@@ -1,4 +1,4 @@
-module github.com/jlevesy/prometheus-elector
+module github.com/prometheus-community/prometheus-elector
 
 go 1.27.0
 

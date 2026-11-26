@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jlevesy/prometheus-elector/config"
-	"github.com/jlevesy/prometheus-elector/watcher"
+	"github.com/prometheus-community/prometheus-elector/config"
+	"github.com/prometheus-community/prometheus-elector/watcher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
