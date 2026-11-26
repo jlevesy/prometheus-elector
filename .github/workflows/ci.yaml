@@ -56,7 +56,7 @@ jobs:
           go-version-file: './go.mod'
           check-latest: true
       - name: Install Ko
-        uses: imjasonh/setup-ko@v0.7
+        uses: imjasonh/setup-ko@v0.10
       - name: Release a New Version
         run: make ci_release
         env:
