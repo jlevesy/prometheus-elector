@@ -26,11 +26,11 @@ follower:
 `
 
 const wantConfig = `scrape_configs:
-    - job_name: foobar
-      scrape_interval: 5s
-      static_configs:
-        - targets:
-            - localhost:8080
+- job_name: foobar
+  scrape_interval: 5s
+  static_configs:
+  - targets:
+    - localhost:8080
 `
 
 const (

@@ -7,7 +7,7 @@ require (
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/prometheus/client_golang v1.25.0
 	github.com/stretchr/testify v1.12.1
-	go.yaml.in/yaml/v3 v3.0.6
+	go.yaml.in/yaml/v2 v2.4.5
 	golang.org/x/net v0.63.0
 	golang.org/x/sync v0.25.0
 	k8s.io/apimachinery v0.37.3
@@ -51,7 +51,7 @@ require (
 	github.com/prometheus/procfs v0.23.0 // indirect
 	github.com/spf13/pflag v1.1.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.yaml.in/yaml/v2 v2.4.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/term v0.48.0 // indirect
