@@ -3,8 +3,8 @@ module github.com/jlevesy/prometheus-elector
 go 1.27.0
 
 require (
+	dario.cat/mergo v1.0.2
 	github.com/fsnotify/fsnotify v1.10.1
-	github.com/imdario/mergo v0.3.16
 	github.com/prometheus/client_golang v1.25.0
 	github.com/stretchr/testify v1.12.1
 	go.yaml.in/yaml/v3 v3.0.6

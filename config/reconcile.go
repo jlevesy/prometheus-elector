@@ -3,7 +3,7 @@ package config
 import (
 	"context"
 
-	"github.com/imdario/mergo"
+	"dario.cat/mergo"
 )
 
 type Reconciler struct {
