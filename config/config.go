@@ -1,10 +1,12 @@
 package config
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"os"
 
-	"gopkg.in/yaml.v2"
+	"go.yaml.in/yaml/v3"
 )
 
 type config struct {
@@ -20,7 +22,10 @@ func loadConfiguration(path string) (*config, error) {
 
 	var cfg config
 
-	if err = yaml.UnmarshalStrict(fileBytes, &cfg); err != nil {
+	decoder := yaml.NewDecoder(bytes.NewReader(fileBytes))
+	decoder.KnownFields(true)
+
+	if err = decoder.Decode(&cfg); err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 
