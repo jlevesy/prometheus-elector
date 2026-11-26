@@ -16,13 +16,13 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/klog/v2"
 
-	"github.com/jlevesy/prometheus-elector/api"
-	"github.com/jlevesy/prometheus-elector/config"
-	"github.com/jlevesy/prometheus-elector/election"
-	"github.com/jlevesy/prometheus-elector/health"
-	"github.com/jlevesy/prometheus-elector/notifier"
-	"github.com/jlevesy/prometheus-elector/readiness"
-	"github.com/jlevesy/prometheus-elector/watcher"
+	"github.com/prometheus-community/prometheus-elector/api"
+	"github.com/prometheus-community/prometheus-elector/config"
+	"github.com/prometheus-community/prometheus-elector/election"
+	"github.com/prometheus-community/prometheus-elector/health"
+	"github.com/prometheus-community/prometheus-elector/notifier"
+	"github.com/prometheus-community/prometheus-elector/readiness"
+	"github.com/prometheus-community/prometheus-elector/watcher"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 )
@@ -163,7 +163,11 @@ func run() int {
 		klog.ErrorS(err, "Can't create the watcher")
 		return 1
 	}
-	defer watcher.Close()
+	defer func() {
+		if err := watcher.Close(); err != nil {
+			klog.ErrorS(err, "Unable to close the watcher")
+		}
+	}()
 
 	apiServer, err := api.NewServer(
 		api.Config{

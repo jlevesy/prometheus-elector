@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jlevesy/prometheus-elector/health"
+	"github.com/prometheus-community/prometheus-elector/health"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

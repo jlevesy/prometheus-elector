@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/jlevesy/prometheus-elector/election"
+	"github.com/prometheus-community/prometheus-elector/election"
 	"k8s.io/klog/v2"
 )
 

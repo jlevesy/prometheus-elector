@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/jlevesy/prometheus-elector/api"
+	"github.com/prometheus-community/prometheus-elector/api"
 )
 
 func TestServer_ServeHTTP_ProxyNotLeaderForwardsToLeader(t *testing.T) {
@@ -175,7 +175,9 @@ func TestServer_ServeHTTP_ProxyDisabled(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	defer resp.Body.Close()
+	defer func() {
+		assert.NoError(t, resp.Body.Close())
+	}()
 
 	var gotLeaderStatus api.LeaderStatus
 

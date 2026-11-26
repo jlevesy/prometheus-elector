@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jlevesy/prometheus-elector/config"
+	"github.com/prometheus-community/prometheus-elector/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -37,7 +37,14 @@ func TestReconciler(t *testing.T) {
 		{
 			desc:           "no leader section",
 			inputPath:      "./testdata/config_no_leader.yaml",
+			isLeader:       true,
 			wantResultPath: "./testdata/config_no_leader_result.yaml",
+		},
+		{
+			desc:           "leader with nested map merge",
+			inputPath:      "./testdata/config_nested.yaml",
+			isLeader:       true,
+			wantResultPath: "./testdata/leader_nested_result.yaml",
 		},
 		{
 			desc:      "no follower section",

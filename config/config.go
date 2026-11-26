@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 
-	"gopkg.in/yaml.v2"
+	"go.yaml.in/yaml/v2"
 )
 
 type config struct {

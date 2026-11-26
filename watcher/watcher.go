@@ -8,9 +8,9 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"k8s.io/klog/v2"
 
-	"github.com/jlevesy/prometheus-elector/config"
-	"github.com/jlevesy/prometheus-elector/election"
-	"github.com/jlevesy/prometheus-elector/notifier"
+	"github.com/prometheus-community/prometheus-elector/config"
+	"github.com/prometheus-community/prometheus-elector/election"
+	"github.com/prometheus-community/prometheus-elector/notifier"
 )
 
 type FileWatcher struct {

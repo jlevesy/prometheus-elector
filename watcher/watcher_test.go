@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jlevesy/prometheus-elector/config"
-	"github.com/jlevesy/prometheus-elector/watcher"
+	"github.com/prometheus-community/prometheus-elector/config"
+	"github.com/prometheus-community/prometheus-elector/watcher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -63,7 +63,9 @@ func TestFileWatcher(t *testing.T) {
 	watcher, err := watcher.New(dir, reconciler, notifierFunc(notifier), leaderCheckerFunc(func() bool { return false }))
 	require.NoError(t, err)
 
-	defer watcher.Close()
+	defer func() {
+		assert.NoError(t, watcher.Close())
+	}()
 
 	go func() {
 		err := watcher.Watch(ctx)

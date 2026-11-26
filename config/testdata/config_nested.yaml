@@ -1,0 +1,17 @@
+follower:
+  global:
+    scrape_interval: 15s
+    external_labels:
+      cluster: follower-cluster
+      region: eu-west
+  scrape_configs:
+  - job_name: foobar
+    scrape_interval: 5s
+    static_configs:
+    - targets: ['localhost:8080']
+
+leader:
+  global:
+    external_labels:
+      cluster: leader-cluster
+      role: leader
