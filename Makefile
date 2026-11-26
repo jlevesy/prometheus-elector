@@ -1,4 +1,4 @@
-K3S_VERSION = v1.25.0-k3s1
+K3S_VERSION = v1.37.2-k3s1
 RELEASE_TAG ?= dev
 TIMEOUT ?= 5s
 
@@ -37,9 +37,7 @@ delete_cluster:
 install_agent_example: install_storage
 	helm template \
 		--set elector.image.devRef=ko://github.com/prometheus-community/prometheus-elector/cmd \
-		--set prometheus.image.repository=jlevesy/prometheus \
-		--set prometheus.image.tag=allow-agent-no-remote-write \
-		--set storage.storageClass="local-path" \
+		--set storage.storageClassName="local-path" \
 		-f ./example/k8s/agent-values.yaml \
 		prometheus-elector-dev ./helm | KO_DOCKER_REPO=prometheus-elector-registry.localhost:5000 ko apply -B -t dev -f -
 
@@ -47,9 +45,7 @@ install_agent_example: install_storage
 install_proxy_example:
 	helm template \
 		--set elector.image.devRef=ko://github.com/prometheus-community/prometheus-elector/cmd \
-		--set prometheus.image.repository=jlevesy/prometheus \
-		--set prometheus.image.tag=allow-agent-no-remote-write \
-		--set storage.storageClass="local-path" \
+		--set storage.storageClassName="local-path" \
 		-f ./example/k8s/ha-values.yaml \
 		prometheus-elector-dev ./helm | KO_DOCKER_REPO=prometheus-elector-registry.localhost:5000 ko apply -B -t dev -f -
 
@@ -62,9 +58,9 @@ run_agent_local: dist
 	POD_NAME=${POD_NAME} go run ./cmd \
 					 -lease-name lease-dev \
 					 -lease-namespace default \
-					 -kubeconfig /Users/${USER}/.kube/config \
+					 -kubeconfig "${HOME}/.kube/config" \
 					 -config ./example/config.yaml \
-					 -output ./dist/config-${POD_NAME}.yaml \
+					 -output "./dist/config-${POD_NAME}.yaml" \
 					 -notify-http-url http://localhost:9091/-/reload
 
 dist:
