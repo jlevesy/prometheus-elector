@@ -175,7 +175,9 @@ func TestServer_ServeHTTP_ProxyDisabled(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	defer resp.Body.Close()
+	defer func() {
+		assert.NoError(t, resp.Body.Close())
+	}()
 
 	var gotLeaderStatus api.LeaderStatus
 

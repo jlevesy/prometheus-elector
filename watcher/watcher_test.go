@@ -63,7 +63,9 @@ func TestFileWatcher(t *testing.T) {
 	watcher, err := watcher.New(dir, reconciler, notifierFunc(notifier), leaderCheckerFunc(func() bool { return false }))
 	require.NoError(t, err)
 
-	defer watcher.Close()
+	defer func() {
+		assert.NoError(t, watcher.Close())
+	}()
 
 	go func() {
 		err := watcher.Watch(ctx)

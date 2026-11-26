@@ -163,7 +163,11 @@ func run() int {
 		klog.ErrorS(err, "Can't create the watcher")
 		return 1
 	}
-	defer watcher.Close()
+	defer func() {
+		if err := watcher.Close(); err != nil {
+			klog.ErrorS(err, "Unable to close the watcher")
+		}
+	}()
 
 	apiServer, err := api.NewServer(
 		api.Config{
